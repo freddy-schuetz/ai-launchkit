@@ -232,6 +232,28 @@ if is_profile_active "odoo"; then
   echo "Documentation: https://www.odoo.com/documentation/18.0/"
 fi
 
+if is_profile_active "plane"; then
+  echo
+  echo "================================= Plane ==============================="
+  echo
+  echo "Host: ${PLANE_HOSTNAME:-<hostname_not_set>}"
+  echo
+  echo "Access:"
+  echo "  External: https://${PLANE_HOSTNAME:-<hostname_not_set>}"
+  echo "  Internal API: http://plane-api:8000"
+  echo
+  echo "Setup:"
+  echo "  1. First user to register becomes admin"
+  echo "  2. Create workspace"
+  echo "  3. Invite team members"
+  echo
+  echo "n8n Integration:"
+  echo "  API Endpoint: http://plane-api:8000/api"
+  echo "  Authentication: API Token (generate in user settings)"
+  echo
+  echo "Documentation: https://docs.plane.so"
+fi
+
 if is_profile_active "baserow"; then
   echo
   echo "================================= Baserow ============================"

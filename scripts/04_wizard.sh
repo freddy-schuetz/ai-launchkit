@@ -60,6 +60,7 @@ base_services_data=(
     "cloudflare-tunnel" "Cloudflare Tunnel (Zero-Trust Secure Access)"
     "postiz" "Postiz (Social publishing platform)"
     "odoo" "Odoo 18 (Open Source ERP/CRM with AI features)"
+    "plane" "Plane (Modern project management - Asana/Mondy/Jira alternative)"
     "baserow" "Baserow (Airtable Alternative)"
     "langfuse" "Langfuse Suite (AI Observability - includes Clickhouse, Minio)"
     "qdrant" "Qdrant (Vector Database)"

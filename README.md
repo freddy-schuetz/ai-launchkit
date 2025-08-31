@@ -57,6 +57,7 @@ ATTENTION! The AI LaunchKit is currently in development. It is regularly tested 
 |------|-------------|-----------|--------|
 | **[Baserow](https://github.com/bram2w/baserow)** | Airtable Alternative with real-time collaboration | Database management, project tracking, collaborative workflows | `baserow.yourdomain.com` |
 | **[Odoo 18](https://github.com/odoo/odoo)** | Open Source ERP/CRM with AI features | Sales automation, inventory, accounting, AI lead scoring | `odoo.yourdomain.com` |
+| **[Plane](https://github.com/makeplane/plane)** | Modern project management (Asana/Monday/Jira alternative) | Issues, sprints, cycles, analytics, team collaboration | `plane.yourdomain.com` |
 
 ### 🎨 AI Content Generation
 
@@ -658,6 +659,298 @@ Leverage Odoo's built-in AI capabilities:
 4. **Caching**: Store frequently accessed data (like product lists) in variables
 5. **Webhooks**: Set up Odoo automated actions to trigger n8n workflows
 6. **Custom Fields**: Create custom fields in Odoo for AI-generated content
+
+### 📋 Plane Project Management Integration with n8n
+
+Plane is a modern project management tool (Linear/Jira alternative) that provides a clean, fast interface for managing issues, cycles, and sprints. It offers comprehensive API access for automation via n8n.
+
+#### Initial Setup
+
+**First Login to Plane:**
+1. Navigate to `https://plane.yourdomain.com`
+2. Register as the first user (becomes admin automatically)
+3. Create your first workspace
+4. Create projects within the workspace
+5. Generate API token in user settings → API Tokens
+
+#### Authentication in n8n
+
+**HTTP Request Node Headers:**
+```javascript
+Headers: {
+  "X-API-KEY": "{{ $credentials.planeApiKey }}",
+  "Content-Type": "application/json"
+}
+```
+
+#### Example: Sprint Management Automation
+
+Automate sprint planning and task distribution:
+
+```javascript
+// 1. Schedule Trigger: Start of sprint (Monday 9 AM)
+// 2. HTTP Request: Create new cycle
+Method: POST
+URL: http://plane-api:8000/api/workspaces/{{ $json.workspace_id }}/projects/{{ $json.project_id }}/cycles/
+Body: {
+  "name": "Sprint {{ $now.format('YYYY-[W]WW') }}",
+  "description": "Weekly sprint starting {{ $now.format('MMM DD') }}",
+  "start_date": "{{ $now.toISO() }}",
+  "end_date": "{{ $now.plus(7, 'days').toISO() }}"
+}
+
+// 3. HTTP Request: Get backlog issues
+Method: GET
+URL: http://plane-api:8000/api/workspaces/{{ $json.workspace_id }}/projects/{{ $json.project_id }}/issues/?state=backlog&priority=high,urgent
+
+// 4. Loop Over Items: Assign to sprint
+// 5. HTTP Request: Add issue to cycle
+Method: POST
+URL: http://plane-api:8000/api/workspaces/{{ $json.workspace_id }}/projects/{{ $json.project_id }}/cycles/{{ $('Create Cycle').json.id }}/cycle-issues/
+Body: {
+  "issues": ["{{ $json.id }}"]
+}
+
+// 6. Slack Node: Notify team
+Message: "New sprint started with {{ $json.issue_count }} high-priority issues"
+```
+
+#### Example: Issue Creation from Multiple Sources
+
+Centralize issue creation from various channels:
+
+```javascript
+// 1. Multiple Triggers (Webhook, Email, Slack)
+// 2. Code Node: Standardize input
+const source = $input.first().json;
+const issue = {
+  name: source.title || source.subject || "New Issue",
+  description: source.description || source.body || "",
+  priority: source.urgent ? "urgent" : "medium",
+  labels: []
+};
+
+// Add source label
+if (source.from_email) issue.labels.push("email");
+if (source.from_slack) issue.labels.push("slack");
+if (source.from_webhook) issue.labels.push("api");
+
+return { json: issue };
+
+// 3. HTTP Request: Create issue
+Method: POST
+URL: http://plane-api:8000/api/workspaces/{{ $json.workspace_id }}/projects/{{ $json.project_id }}/issues/
+Body: {
+  "name": "{{ $json.name }}",
+  "description": "{{ $json.description }}",
+  "priority": "{{ $json.priority }}",
+  "labels": {{ $json.labels }},
+  "state": "triage"
+}
+
+// 4. AI Enhancement: Generate detailed description
+Prompt: Expand this issue description with acceptance criteria and technical details:
+{{ $json.description }}
+
+// 5. HTTP Request: Update issue with AI content
+Method: PATCH
+URL: http://plane-api:8000/api/workspaces/{{ $json.workspace_id }}/projects/{{ $json.project_id }}/issues/{{ $json.issue_id }}/
+Body: {
+  "description_html": "{{ $json.enhanced_description }}"
+}
+```
+
+#### Example: Automated Progress Reports
+
+Generate weekly project status reports:
+
+```javascript
+// 1. Schedule Trigger: Friday 3 PM
+// 2. HTTP Request: Get current cycle
+Method: GET
+URL: http://plane-api:8000/api/workspaces/{{ $json.workspace_id }}/projects/{{ $json.project_id }}/cycles/current/
+
+// 3. HTTP Request: Get cycle issues
+Method: GET
+URL: http://plane-api:8000/api/workspaces/{{ $json.workspace_id }}/projects/{{ $json.project_id }}/cycles/{{ $json.cycle_id }}/cycle-issues/
+
+// 4. Code Node: Calculate metrics
+const issues = $input.first().json.issues;
+const metrics = {
+  total: issues.length,
+  completed: issues.filter(i => i.state === "completed").length,
+  in_progress: issues.filter(i => i.state === "in_progress").length,
+  blocked: issues.filter(i => i.state === "blocked").length,
+  completion_rate: Math.round((completed / total) * 100)
+};
+
+// Group by assignee
+const byAssignee = {};
+issues.forEach(issue => {
+  const assignee = issue.assignee || "Unassigned";
+  if (!byAssignee[assignee]) {
+    byAssignee[assignee] = { completed: 0, in_progress: 0, total: 0 };
+  }
+  byAssignee[assignee].total++;
+  if (issue.state === "completed") byAssignee[assignee].completed++;
+  if (issue.state === "in_progress") byAssignee[assignee].in_progress++;
+});
+
+return { json: { metrics, byAssignee } };
+
+// 5. Create Report with AI
+Prompt: Generate a professional sprint report:
+Sprint: {{ $json.sprint_name }}
+Completion: {{ $json.metrics.completion_rate }}%
+Team Performance: {{ $json.byAssignee }}
+
+// 6. Send via Email/Slack
+```
+
+#### Example: Cross-Platform Issue Sync
+
+Sync issues between Plane and other tools:
+
+```javascript
+// 1. Webhook Trigger: Plane issue created/updated
+// 2. HTTP Request: Get issue details
+Method: GET
+URL: http://plane-api:8000/api/workspaces/{{ $json.workspace_id }}/projects/{{ $json.project_id }}/issues/{{ $json.issue_id }}/
+
+// 3. Switch Node: Route by sync target
+// Branch: Sync to GitHub
+Method: POST
+URL: https://api.github.com/repos/{{ $json.repo }}/issues
+Headers: {
+  "Authorization": "Bearer {{ $credentials.githubToken }}"
+}
+Body: {
+  "title": "[Plane] {{ $json.name }}",
+  "body": "{{ $json.description }}\n\n---\nPlane Issue: {{ $json.identifier }}",
+  "labels": {{ $json.labels }}
+}
+
+// Branch: Sync to Jira
+Method: POST
+URL: https://your-domain.atlassian.net/rest/api/3/issue
+Headers: {
+  "Authorization": "Basic {{ $credentials.jiraAuth }}"
+}
+Body: {
+  "fields": {
+    "project": { "key": "PROJ" },
+    "summary": "{{ $json.name }}",
+    "description": {
+      "type": "doc",
+      "version": 1,
+      "content": [...]
+    }
+  }
+}
+
+// 4. Update Plane issue with external IDs
+Method: PATCH
+URL: http://plane-api:8000/api/workspaces/{{ $json.workspace_id }}/projects/{{ $json.project_id }}/issues/{{ $json.issue_id }}/
+Body: {
+  "external_ids": {
+    "github": "{{ $json.github_issue_number }}",
+    "jira": "{{ $json.jira_key }}"
+  }
+}
+```
+
+#### Example: AI-Powered Issue Analysis
+
+Use AI to analyze and categorize issues:
+
+```javascript
+// 1. HTTP Request: Get all open issues
+Method: GET
+URL: http://plane-api:8000/api/workspaces/{{ $json.workspace_id }}/projects/{{ $json.project_id }}/issues/?state=open
+
+// 2. Loop Over Items
+// 3. AI Analysis (OpenAI/Ollama)
+Prompt: Analyze this issue and provide:
+1. Estimated complexity (1-5)
+2. Required skills
+3. Potential blockers
+4. Suggested assignee based on skills
+
+Issue: {{ $json.name }}
+Description: {{ $json.description }}
+
+// 4. HTTP Request: Update issue with analysis
+Method: PATCH
+URL: http://plane-api:8000/api/workspaces/{{ $json.workspace_id }}/projects/{{ $json.project_id }}/issues/{{ $json.id }}/
+Body: {
+  "estimate_point": {{ $json.complexity }},
+  "labels": {{ $json.required_skills }},
+  "description_html": "{{ $json.description }}<hr><h3>AI Analysis</h3>{{ $json.ai_analysis }}"
+}
+
+// 5. Conditional: Auto-assign if confidence > 80%
+If: {{ $json.assignment_confidence > 80 }}
+Then: HTTP Request to assign issue
+```
+
+#### Advanced: Plane Analytics Dashboard
+
+Create custom analytics in n8n:
+
+```javascript
+// Get all projects
+Method: GET
+URL: http://plane-api:8000/api/workspaces/{{ $json.workspace_id }}/projects/
+
+// For each project, get analytics
+Method: GET
+URL: http://plane-api:8000/api/workspaces/{{ $json.workspace_id }}/projects/{{ $json.project_id }}/analytics/
+Query Parameters: {
+  "segment": "assignees",
+  "x_axis": "state_id",
+  "y_axis": "issue_count"
+}
+
+// Aggregate data and create visualization
+// Store in database or send to Grafana
+```
+
+#### Plane API Resources
+
+**Common Endpoints:**
+- **Workspaces:** `/api/workspaces/`
+- **Projects:** `/api/workspaces/{workspace_id}/projects/`
+- **Issues:** `/api/workspaces/{workspace_id}/projects/{project_id}/issues/`
+- **Cycles:** `/api/workspaces/{workspace_id}/projects/{project_id}/cycles/`
+- **Modules:** `/api/workspaces/{workspace_id}/projects/{project_id}/modules/`
+- **Views:** `/api/workspaces/{workspace_id}/projects/{project_id}/views/`
+- **Pages:** `/api/workspaces/{workspace_id}/projects/{project_id}/pages/`
+
+**Issue States:**
+- `backlog` - Not started
+- `unstarted` - Ready to start
+- `started` - In progress
+- `completed` - Done
+- `cancelled` - Won't do
+- `blocked` - Blocked by dependency
+
+**Priority Levels:**
+- `urgent` - P0
+- `high` - P1
+- `medium` - P2
+- `low` - P3
+- `none` - No priority
+
+#### Tips for Plane + n8n Integration
+
+1. **Use Internal URLs**: Always use `http://plane-api:8000` from n8n
+2. **API Token Security**: Store tokens in n8n credentials, never hardcode
+3. **Batch Operations**: Use bulk endpoints when available to reduce API calls
+4. **Webhooks**: Set up Plane webhooks for real-time triggers
+5. **Rate Limiting**: Add delays between bulk operations
+6. **Error Handling**: Implement Try/Catch for resilient workflows
+7. **Caching**: Store frequently accessed data (workspace/project IDs) in variables
+8. **Custom Fields**: Use issue properties for workflow metadata
 
 ### 🔎 Perplexica Integration with n8n
 

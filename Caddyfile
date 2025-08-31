@@ -165,6 +165,11 @@
     reverse_proxy baserow:80
 }
 
+# Plane (Project Management)
+{$PLANE_HOSTNAME} {
+    reverse_proxy plane-web:3000
+}
+
 # Neo4j
 {$NEO4J_HOSTNAME} {
     reverse_proxy neo4j:7474

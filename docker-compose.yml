@@ -26,6 +26,7 @@ volumes:
   lightrag_data:
   odoo_data:
   baserow_data:
+  plane_uploads:
 
 x-n8n: &service-n8n
   build:
@@ -281,6 +282,7 @@ services:
       - ODOO_HOSTNAME=${ODOO_HOSTNAME}
       - ODOO_USERNAME=${ODOO_USERNAME}
       - ODOO_PASSWORD_HASH=${ODOO_PASSWORD_HASH}
+      - PLANE_HOSTNAME=${PLANE_HOSTNAME}
       - PERPLEXICA_HOSTNAME=${PERPLEXICA_HOSTNAME}
       - PERPLEXICA_USERNAME=${PERPLEXICA_USERNAME}
       - PERPLEXICA_PASSWORD_HASH=${PERPLEXICA_PASSWORD_HASH}
@@ -1006,3 +1008,69 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - searxng
+
+  # Plane Frontend
+  plane-web:
+    image: makeplane/plane-frontend:latest
+    container_name: plane-web
+    profiles: ["plane"]
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://plane-api:8000
+      - NEXT_PUBLIC_WEBSITE_URL=https://${PLANE_HOSTNAME}
+    depends_on:
+      - plane-api
+      - plane-worker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Plane Backend API
+  plane-api:
+    image: makeplane/plane-backend:latest
+    container_name: plane-api
+    profiles: ["plane"]
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/plane
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=${PLANE_SECRET_KEY}
+      - WEB_URL=https://${PLANE_HOSTNAME}
+      - EMAIL_HOST=${EMAIL_SMTP_HOST}
+      - EMAIL_HOST_USER=${EMAIL_SMTP_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_SMTP_PASSWORD}
+      - EMAIL_PORT=${EMAIL_SMTP_PORT}
+      - EMAIL_USE_TLS=${EMAIL_SMTP_USE_TLS}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - ENABLE_SIGNUP=1
+    volumes:
+      - plane_uploads:/code/uploads
+      - ./shared:/data/shared
+    depends_on:
+      - postgres
+      - redis
+    healthcheck:
+      test: ["CMD-SHELL", "python manage.py health_check"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Plane Background Worker
+  plane-worker:
+    image: makeplane/plane-backend:latest
+    container_name: plane-worker
+    profiles: ["plane"]
+    restart: unless-stopped
+    command: python manage.py rqworker
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/plane
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=${PLANE_SECRET_KEY}
+      - WEB_URL=https://${PLANE_HOSTNAME}
+    volumes:
+      - plane_uploads:/code/uploads
+    depends_on:
+      - postgres
+      - redis

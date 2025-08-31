@@ -65,6 +65,7 @@ declare -A VARS_TO_GENERATE=(
     ["ODOO_MASTER_PASSWORD"]="password:32"
     ["ODOO_PASSWORD"]="password:32"
     ["BASEROW_SECRET_KEY"]="secret:64"
+    ["PLANE_SECRET_KEY"]="secret:64"
 )
 
 # Initialize existing_env_vars and attempt to read .env if it exists
