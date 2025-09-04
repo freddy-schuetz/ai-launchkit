@@ -527,7 +527,6 @@ force_update_email_variables() {
     _update_or_add_env_var "MAIL_FROM_NAME" "AI LaunchKit"
     _update_or_add_env_var "MAIL_REPLY_TO_ADDRESS" "${generated_values[SMTP_FROM]:-noreply@local}"
 }
-}
 
 # --- Main Logic ---
 
