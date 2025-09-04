@@ -1113,22 +1113,20 @@ services:
   mysql_leantime:
     image: mysql:8.4
     container_name: mysql_leantime
-    profiles: ["mysql"]  # This profile is auto-activated when leantime is selected
+    profiles: ["mysql"]
     restart: unless-stopped
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=leantime
-      - MYSQL_USER=leantime
-      - MYSQL_PASSWORD=${LEANTIME_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: leantime
+      MYSQL_PASSWORD: ${LEANTIME_DB_PASSWORD}
     volumes:
-      - mysql-leantime-data:/var/lib/mysql
-    command: --character-set-server=UTF8MB4 --collation-server=UTF8MB4_unicode_ci
+      - mysql_leantime_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Leantime - Full Project Management Suite
   leantime:
@@ -1172,53 +1170,6 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-
-  easyappointments:
-    image: alextselegidis/easyappointments:latest
-    container_name: easyappointments
-    profiles: ["easyappointments"]
-    restart: unless-stopped
-    environment:
-      # Application Configuration
-      - BASE_URL=https://${EASYAPPOINTMENTS_HOSTNAME}
-      - DEBUG_MODE=false
-      # Database Configuration (using existing MySQL)
-      - DB_HOST=mysql_leantime
-      - DB_NAME=easyappointments
-      - DB_USERNAME=root
-      - DB_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      # Email Configuration (uses MAIL_* variables from mail system)
-      - MAIL_PROTOCOL=smtp
-      - MAIL_SMTP_HOST=${MAIL_SMTP_HOST}
-      - MAIL_SMTP_PORT=${MAIL_SMTP_PORT}
-      - MAIL_SMTP_USER=${MAIL_SMTP_USER}
-      - MAIL_SMTP_PASS=${MAIL_SMTP_PASS}
-      - MAIL_SMTP_CRYPTO=${MAIL_SMTP_CRYPTO}
-      - MAIL_SMTP_DEBUG=${MAIL_SMTP_DEBUG:-0}
-      - MAIL_SMTP_AUTH=${MAIL_SMTP_AUTH:-1}
-      - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS}
-      - MAIL_FROM_NAME=${MAIL_FROM_NAME}
-      - MAIL_REPLY_TO_ADDRESS=${MAIL_FROM_ADDRESS}
-      # Optional Google Calendar Integration
-      - GOOGLE_SYNC_FEATURE=${EASYAPPOINTMENTS_GOOGLE_SYNC:-false}
-      - GOOGLE_PRODUCT_NAME=${EASYAPPOINTMENTS_GOOGLE_PRODUCT_NAME:-}
-      - GOOGLE_CLIENT_ID=${EASYAPPOINTMENTS_GOOGLE_CLIENT_ID:-}
-      - GOOGLE_CLIENT_SECRET=${EASYAPPOINTMENTS_GOOGLE_CLIENT_SECRET:-}
-      - GOOGLE_API_KEY=${EASYAPPOINTMENTS_GOOGLE_API_KEY:-}
-      # Timezone
-      - TZ=${TZ:-UTC}
-    volumes:
-      - ./easyappointments:/var/www/html/storage
-      - ./shared:/data/shared
-    depends_on:
-      mysql_leantime:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:80/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
