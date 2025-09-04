@@ -354,6 +354,36 @@ if is_profile_active "leantime"; then
   echo "Forum: https://community.leantime.io"
 fi
 
+if is_profile_active "easyappointments"; then
+  echo
+  echo "================================= Easy!Appointments ==================="
+  echo
+  echo "Host: ${EASYAPPOINTMENTS_HOSTNAME:-<hostname_not_set>}"
+  echo
+  echo "Access URL: https://${EASYAPPOINTMENTS_HOSTNAME:-<hostname_not_set>}"
+  echo
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo
+  echo "First Steps:"
+  echo "  1. Open the URL above in your browser"
+  echo "  2. The installation wizard will start automatically"
+  echo "  3. Database is already configured (using MySQL)"
+  echo "  4. Create your first user (becomes admin)"
+  echo "  5. Configure services, providers and business hours"
+  echo
+  echo "n8n Integration:"
+  echo "  Internal URL: http://easyappointments:80"
+  echo "  API Docs: https://developers.easyappointments.org"
+  echo "  Webhooks: Configure in Settings -> Webhooks"
+  echo
+  echo "Email Notifications:"
+  echo "  Status: Configured (via ${MAIL_MODE})"
+  echo "  Test: Book an appointment to verify email delivery"
+  echo
+  echo "Documentation: https://docs.easyappointments.org"
+  echo "Community: https://groups.google.com/g/easy-appointments"
+fi
+
 if is_profile_active "ragapp"; then
   echo
   echo "================================= RAGApp =============================="

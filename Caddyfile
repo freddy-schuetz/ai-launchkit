@@ -175,6 +175,11 @@
     reverse_proxy leantime:8080
 }
 
+# Easy!Appointments - Open Source Appointment Scheduler
+{$EASYAPPOINTMENTS_HOSTNAME} {
+    reverse_proxy easyappointments:80
+}
+
 # ============================================================================
 # MAIL SERVICES
 # ============================================================================

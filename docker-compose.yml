@@ -37,6 +37,7 @@ volumes:
   postal_rabbitmq:
   postal_assets:
   postal_uploads:
+  easyappointments_data:
 
 x-n8n: &service-n8n
   build:
@@ -317,6 +318,7 @@ services:
       - VIKUNJA_HOSTNAME=${VIKUNJA_HOSTNAME}
       - WEAVIATE_HOSTNAME=${WEAVIATE_HOSTNAME}
       - WEBUI_HOSTNAME=${WEBUI_HOSTNAME}
+      - EASYAPPOINTMENTS_HOSTNAME=${EASYAPPOINTMENTS_HOSTNAME}
       - WHISPER_AUTH_USER=${WHISPER_AUTH_USER}
       - WHISPER_AUTH_PASSWORD_HASH=${WHISPER_AUTH_PASSWORD_HASH}
       # Mail Services
@@ -1003,7 +1005,53 @@ services:
       timeout: 10s
       retries: 3
 
-
+  # Easy!Appointments - Open Source Appointment Scheduler
+  easyappointments:
+    image: alextselegidis/easyappointments:latest
+    container_name: easyappointments
+    profiles: ["easyappointments"]
+    restart: unless-stopped
+    environment:
+      # Application Configuration
+      - BASE_URL=https://${EASYAPPOINTMENTS_HOSTNAME}
+      - DEBUG_MODE=false
+      # Database Configuration (using existing MySQL)
+      - DB_HOST=mysql_leantime
+      - DB_NAME=easyappointments
+      - DB_USERNAME=root
+      - DB_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      # Email Configuration (uses MAIL_* variables from mail system)
+      - MAIL_PROTOCOL=smtp
+      - MAIL_SMTP_HOST=${MAIL_SMTP_HOST}
+      - MAIL_SMTP_PORT=${MAIL_SMTP_PORT}
+      - MAIL_SMTP_USER=${MAIL_SMTP_USER}
+      - MAIL_SMTP_PASS=${MAIL_SMTP_PASS}
+      - MAIL_SMTP_CRYPTO=${MAIL_SMTP_CRYPTO}
+      - MAIL_SMTP_DEBUG=${MAIL_SMTP_DEBUG:-0}
+      - MAIL_SMTP_AUTH=${MAIL_SMTP_AUTH:-1}
+      - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME}
+      - MAIL_REPLY_TO_ADDRESS=${MAIL_FROM_ADDRESS}
+      # Optional Google Calendar Integration
+      - GOOGLE_SYNC_FEATURE=${EASYAPPOINTMENTS_GOOGLE_SYNC:-false}
+      - GOOGLE_PRODUCT_NAME=${EASYAPPOINTMENTS_GOOGLE_PRODUCT_NAME:-}
+      - GOOGLE_CLIENT_ID=${EASYAPPOINTMENTS_GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${EASYAPPOINTMENTS_GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_API_KEY=${EASYAPPOINTMENTS_GOOGLE_API_KEY:-}
+      # Timezone
+      - TZ=${TZ:-UTC}
+    volumes:
+      - easyappointments_data:/var/www/html/storage
+      - ./shared:/data/shared
+    depends_on:
+      mysql_leantime:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   # Vikunja Database Init - Create database
   vikunja-init:
@@ -1124,6 +1172,53 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  easyappointments:
+    image: alextselegidis/easyappointments:latest
+    container_name: easyappointments
+    profiles: ["easyappointments"]
+    restart: unless-stopped
+    environment:
+      # Application Configuration
+      - BASE_URL=https://${EASYAPPOINTMENTS_HOSTNAME}
+      - DEBUG_MODE=false
+      # Database Configuration (using existing MySQL)
+      - DB_HOST=mysql_leantime
+      - DB_NAME=easyappointments
+      - DB_USERNAME=root
+      - DB_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      # Email Configuration (uses MAIL_* variables from mail system)
+      - MAIL_PROTOCOL=smtp
+      - MAIL_SMTP_HOST=${MAIL_SMTP_HOST}
+      - MAIL_SMTP_PORT=${MAIL_SMTP_PORT}
+      - MAIL_SMTP_USER=${MAIL_SMTP_USER}
+      - MAIL_SMTP_PASS=${MAIL_SMTP_PASS}
+      - MAIL_SMTP_CRYPTO=${MAIL_SMTP_CRYPTO}
+      - MAIL_SMTP_DEBUG=${MAIL_SMTP_DEBUG:-0}
+      - MAIL_SMTP_AUTH=${MAIL_SMTP_AUTH:-1}
+      - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME}
+      - MAIL_REPLY_TO_ADDRESS=${MAIL_FROM_ADDRESS}
+      # Optional Google Calendar Integration
+      - GOOGLE_SYNC_FEATURE=${EASYAPPOINTMENTS_GOOGLE_SYNC:-false}
+      - GOOGLE_PRODUCT_NAME=${EASYAPPOINTMENTS_GOOGLE_PRODUCT_NAME:-}
+      - GOOGLE_CLIENT_ID=${EASYAPPOINTMENTS_GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${EASYAPPOINTMENTS_GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_API_KEY=${EASYAPPOINTMENTS_GOOGLE_API_KEY:-}
+      # Timezone
+      - TZ=${TZ:-UTC}
+    volumes:
+      - ./easyappointments:/var/www/html/storage
+      - ./shared:/data/shared
+    depends_on:
+      mysql_leantime:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5

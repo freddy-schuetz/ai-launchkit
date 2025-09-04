@@ -513,6 +513,20 @@ force_update_email_variables() {
     _update_or_add_env_var "EMAIL_SERVER_PORT" "${generated_values[SMTP_PORT]:-1025}"
     _update_or_add_env_var "EMAIL_SERVER_USER" "${generated_values[SMTP_USER]:-admin}"
     _update_or_add_env_var "EMAIL_SERVER_PASSWORD" "${generated_values[SMTP_PASS]:-admin}"
+
+    # NEW: Easy!Appointments MAIL_* variables
+    _update_or_add_env_var "MAIL_PROTOCOL" "smtp"
+    _update_or_add_env_var "MAIL_SMTP_HOST" "${generated_values[SMTP_HOST]:-mailpit}"
+    _update_or_add_env_var "MAIL_SMTP_PORT" "${generated_values[SMTP_PORT]:-1025}"
+    _update_or_add_env_var "MAIL_SMTP_USER" "${generated_values[SMTP_USER]:-admin}"
+    _update_or_add_env_var "MAIL_SMTP_PASS" "${generated_values[SMTP_PASS]:-admin}"
+    _update_or_add_env_var "MAIL_SMTP_CRYPTO" "none"
+    _update_or_add_env_var "MAIL_SMTP_DEBUG" "0"
+    _update_or_add_env_var "MAIL_SMTP_AUTH" "1"
+    _update_or_add_env_var "MAIL_FROM_ADDRESS" "${generated_values[SMTP_FROM]:-noreply@local}"
+    _update_or_add_env_var "MAIL_FROM_NAME" "AI LaunchKit"
+    _update_or_add_env_var "MAIL_REPLY_TO_ADDRESS" "${generated_values[SMTP_FROM]:-noreply@local}"
+}
 }
 
 # --- Main Logic ---

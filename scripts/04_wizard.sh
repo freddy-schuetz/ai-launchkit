@@ -63,6 +63,7 @@ base_services_data=(
     "baserow" "Baserow (Airtable Alternative)"
     "vikunja" "Vikunja (Modern Task Management - Todoist/TickTick alternative)"
     "leantime" "Leantime - Full project management suite (Asana/Monday alternative)"
+    "easyappointments" "Easy!Appointments (Open Source Appointment Scheduler)"
     "langfuse" "Langfuse Suite (AI Observability - includes Clickhouse, Minio)"
     "qdrant" "Qdrant (Vector Database)"
     "supabase" "Supabase (Backend as a Service)"
@@ -220,13 +221,14 @@ if [ $ollama_selected -eq 1 ]; then
     fi
 fi
 
-# Auto-enable MySQL when Leantime is selected
-if [[ " ${selected_profiles[@]} " =~ " leantime " ]]; then
+# Auto-enable MySQL when Leantime OR Easy!Appointments is selected
+if [[ " ${selected_profiles[@]} " =~ " leantime " ]] || [[ " ${selected_profiles[@]} " =~ " easyappointments " ]]; then
     if [[ ! " ${selected_profiles[@]} " =~ " mysql " ]]; then
         selected_profiles+=("mysql")
         echo
-        log_info "📦 MySQL 8.4 will be installed automatically for Leantime"
-        log_info "   You can use this MySQL instance for other services too (WordPress, Ghost, etc.)"
+        log_info "📦 MySQL 8.4 will be installed automatically"
+        log_info "   Required for: Leantime, Easy!Appointments"
+        log_info "   You can use this MySQL instance for other services too"
         sleep 2
     fi
 fi

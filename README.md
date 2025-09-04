@@ -70,6 +70,7 @@ ATTENTION! The AI LaunchKit is currently in development. It is regularly tested 
 |------|-------------|-----------|--------|
 | **[Vikunja](https://vikunja.io)** | Modern task management platform | Kanban boards, Gantt charts, team collaboration, CalDAV | `vikunja.yourdomain.com` |
 | **[Leantime](https://leantime.io)** | Goal-oriented project management suite | ADHD-friendly PM, time tracking, sprints, strategy tools | `leantime.yourdomain.com` |
+| **[Easy!Appointments](https://easyappointments.org)** | Open Source appointment scheduler | Customer booking, calendar sync, email notifications | `appointments.yourdomain.com` |
 | **[Baserow](https://github.com/bram2w/baserow)** | Airtable Alternative with real-time collaboration | Database management, project tracking, collaborative workflows | `baserow.yourdomain.com` |
 | **[Odoo 18](https://github.com/odoo/odoo)** | Open Source ERP/CRM with AI features | Sales automation, inventory, accounting, AI lead scoring | `odoo.yourdomain.com` |
 
@@ -868,6 +869,288 @@ Leantime's "Start with WHY" approach fits perfectly with n8n automation:
 - Generate insights from strategic canvases
 - Create feedback loops between execution and strategy
 - Support neurodiverse team members with consistent processes
+
+## 📅 Easy!Appointments Integration with n8n
+
+Easy!Appointments provides a professional appointment booking system with customer self-service, perfect for automating scheduling workflows in n8n.
+
+### Initial Setup
+
+1. **First Login to Easy!Appointments:**
+   - Navigate to `https://appointments.yourdomain.com`
+   - The installation wizard starts automatically
+   - Database configuration is pre-filled (using MySQL)
+   - Create your first user account (becomes admin)
+   - Configure services, providers, and business hours
+
+2. **n8n Integration Options:**
+   - **Community Node:** Install `n8n-nodes-easy-appointments` by jannikhst via Settings → Community Nodes
+   - **Native API:** Use HTTP Request nodes with internal URL `http://easyappointments:80`
+   - **Webhooks:** Configure in Settings → Webhooks for real-time triggers
+
+### Community Node Setup (Recommended)
+
+The `n8n-nodes-easy-appointments` community node by jannikhst provides:
+- ✅ Full API support with all endpoints
+- ✅ Trigger node for webhook events
+- ✅ Automatic webhook registration
+- ✅ Bearer Token Authentication
+- ✅ Simplified operations for appointments, customers, services, providers
+
+**Installation:**
+1. In n8n, go to Settings → Community Nodes
+2. Search for `n8n-nodes-easy-appointments`
+3. Install the node by jannikhst
+4. Create credentials:
+   - **API URL:** `http://easyappointments:80/index.php/api/v1`
+   - **Bearer Token:** Generate in Easy!Appointments → Settings → API
+
+### Key Features for Automation
+
+- **Customer Self-Service:** Public booking page with service selection
+- **Email Notifications:** Automatic confirmations and reminders (via Mailpit/Postal)
+- **Calendar Sync:** Google Calendar integration (optional)
+- **Multi-Language:** Support for 20+ languages
+- **Custom Fields:** Add extra fields to collect customer data
+- **Working Plans:** Individual schedules per provider
+- **Break Management:** Configure breaks and holidays
+- **Timezone Support:** Automatic timezone detection
+
+### Example Workflows
+
+#### 1. Appointment Confirmation Pipeline
+```javascript
+// Using Community Node
+1. Easy!Appointments Trigger
+   - Event: appointment.created
+   - Automatic webhook registration
+
+2. Customer Node (Get Details)
+   - Operation: Get
+   - Customer ID: {{ $json.customer_id }}
+
+3. Send Email Node
+   - To: {{ $json.email }}
+   - Subject: Appointment Confirmed - {{ $json.service_name }}
+   - Include calendar invite (.ics file)
+
+4. Slack/Teams Notification
+   - Alert team about new booking
+```
+
+#### 2. Daily Schedule Report
+```javascript
+// Using HTTP Request
+1. Schedule Trigger: Daily at 8 AM
+
+2. HTTP Request: Get Tomorrow's Appointments
+   Method: GET
+   URL: http://easyappointments:80/index.php/api/v1/appointments
+   Query Parameters:
+     start: {{ $now.plus(1, 'day').startOf('day').toISO() }}
+     end: {{ $now.plus(1, 'day').endOf('day').toISO() }}
+   Headers:
+     Authorization: Bearer YOUR_API_TOKEN
+
+3. Code Node: Format Schedule
+   const appointments = $input.first().json;
+   const grouped = _.groupBy(appointments, 'provider_id');
+   // Format by provider and time
+
+4. Send Report via Email/Slack
+```
+
+#### 3. SMS Reminder Automation
+```javascript
+// Webhook + Twilio Integration
+1. Schedule Trigger: Every hour
+
+2. HTTP Request: Get Upcoming Appointments
+   URL: http://easyappointments:80/index.php/api/v1/appointments
+   Query: Next 24 hours, not yet reminded
+
+3. Loop Over Appointments
+
+4. Filter: 24 hours before appointment
+
+5. Twilio Node: Send SMS
+   To: {{ $json.customer_phone }}
+   Message: Reminder: Your appointment is tomorrow at {{ $json.start }}
+
+6. HTTP Request: Update Custom Field
+   Mark as "reminder_sent": true
+```
+
+#### 4. No-Show Follow-up
+```javascript
+1. Schedule Trigger: Daily at 6 PM
+
+2. Easy!Appointments Node: Get Today's Appointments
+   Filter: Status = "no-show"
+
+3. Loop Over No-Shows
+
+4. OpenAI Node: Generate Personalized Message
+   Prompt: Write a friendly follow-up for missed appointment
+
+5. Send Email with Rebooking Link
+   Include one-click rebooking URL
+```
+
+#### 5. Capacity Planning Dashboard
+```javascript
+1. Schedule Trigger: Weekly
+
+2. Easy!Appointments Node: Get Week's Data
+   - Total appointments
+   - Utilization per provider
+   - Popular time slots
+
+3. Code Node: Calculate Metrics
+   - Peak hours analysis
+   - Provider workload balance
+   - Service popularity
+
+4. Google Sheets: Update Dashboard
+   - Weekly trends
+   - Capacity recommendations
+```
+
+### API Endpoints (for HTTP Request)
+
+**Base URL:** `http://easyappointments:80/index.php/api/v1`
+
+**Available Endpoints:**
+- `/appointments` - CRUD operations for appointments
+- `/customers` - Customer management
+- `/services` - Service configuration
+- `/providers` - Provider/staff management
+- `/availabilities` - Check available time slots
+- `/settings` - System configuration
+- `/categories` - Service categories
+
+**Authentication Header:**
+```
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+### Webhook Events
+
+Easy!Appointments supports webhooks for real-time triggers:
+
+**Available Events:**
+- `appointment.created` - New booking made
+- `appointment.updated` - Appointment modified
+- `appointment.deleted` - Appointment cancelled
+- `customer.created` - New customer registered
+- `customer.updated` - Customer data changed
+
+**Webhook Payload Example:**
+```json
+{
+  "event": "appointment.created",
+  "appointment": {
+    "id": 123,
+    "start_datetime": "2025-01-15 10:00:00",
+    "end_datetime": "2025-01-15 11:00:00",
+    "service_id": 1,
+    "provider_id": 1,
+    "customer_id": 45
+  }
+}
+```
+
+### Advanced Features
+
+#### Google Calendar Sync
+1. Enable in Settings → Google Calendar
+2. Each provider can connect their calendar
+3. Two-way sync: bookings appear in Google Calendar
+4. Busy times from Google block availability
+
+#### Custom Fields
+Add extra fields to collect additional customer data:
+- Phone verification
+- Special requirements
+- Marketing consent
+- Custom questions per service
+
+#### Multi-Location Support
+Configure different locations with:
+- Separate providers per location
+- Location-specific services
+- Different working hours
+- Custom booking rules
+
+### Tips for Easy!Appointments + n8n
+
+1. **Use Internal URLs:** Always use `http://easyappointments:80` from n8n, not external URL
+2. **API Token Security:** Generate unique tokens for each integration
+3. **Rate Limiting:** Add delays between bulk operations to avoid overwhelming the system
+4. **Timezone Handling:** Store times in UTC, display in customer timezone
+5. **Email Testing:** Use Mailpit during development to test all notifications
+6. **Webhook Reliability:** Implement retry logic for failed webhook deliveries
+7. **Data Validation:** Validate customer data before creating appointments
+8. **Backup Strategy:** Regular MySQL backups for appointment data
+
+### Email Integration
+
+Easy!Appointments automatically uses the configured mail system:
+- **Development (Mailpit):** All emails captured locally for testing
+- **Production (Postal):** Real email delivery to customers
+- **Templates:** Customize email templates in Settings → Notifications
+
+### Common Automation Scenarios
+
+**Medical/Health Practices:**
+- Patient intake forms before appointments
+- Insurance verification workflows
+- Prescription renewal reminders
+- Follow-up appointment scheduling
+
+**Beauty/Wellness Services:**
+- Package deal management
+- Loyalty program integration
+- Before/after photo management
+- Product recommendation emails
+
+**Consulting/Professional Services:**
+- Meeting preparation automation
+- Document collection before appointments
+- Invoice generation after service
+- Client onboarding workflows
+
+**Education/Training:**
+- Course booking management
+- Attendance tracking
+- Material distribution before sessions
+- Feedback collection after training
+
+### Troubleshooting
+
+**Database Connection Issues:**
+```bash
+# Check MySQL is running
+docker ps | grep mysql
+
+# Test connection from Easy!Appointments
+docker exec easyappointments ping mysql_leantime
+```
+
+**API Authentication Failing:**
+- Ensure Bearer token is correct
+- Check API is enabled in Settings
+- Verify URL includes `/index.php/api/v1`
+
+**Webhook Not Triggering:**
+- Check webhook URL is accessible from container
+- Verify webhook secret matches
+- Look for errors in: `docker logs easyappointments`
+
+**Email Not Sending:**
+- Check SMTP settings match your mail mode
+- Verify in Mailpit UI: `https://mail.yourdomain.com`
+- Test with Send Email node in n8n first
 
 ### 💾 Baserow Integration with n8n
 
