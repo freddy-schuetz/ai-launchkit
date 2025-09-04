@@ -1120,7 +1120,7 @@ services:
       MYSQL_USER: leantime
       MYSQL_PASSWORD: ${LEANTIME_DB_PASSWORD}
     volumes:
-      - mysql_leantime_data:/var/lib/mysql
+      - mysql-leantime-data:/var/lib/mysql
       - ./mysql-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
