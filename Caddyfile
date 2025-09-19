@@ -498,3 +498,8 @@ import /etc/caddy/addons/*.conf
     }
 }
 
+
+# Evolution API - WhatsApp Business API
+evolutionapi.saits.click {
+    reverse_proxy evolutionapi:8080
+}

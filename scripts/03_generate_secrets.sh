@@ -1097,6 +1097,11 @@ fi
 if [[ -n "${generated_values[DOMAIN]}" ]]; then
     _update_or_add_env_var "DOMAIN" "${generated_values[DOMAIN]}"
 fi
+# Evolution API - WhatsApp Business API
+if [ -z "${EVOLUTION_API_KEY}" ]; then
+    _update_or_add_env_var "EVOLUTION_API_KEY" "evolution_$(generate_hex_key 16)"
+fi
+
 
 if [ $? -eq 0 ]; then # This $? reflects the status of the last mv command from the last _update_or_add_env_var call.
     # For now, assuming if we reached here and mv was fine, primary operations were okay.

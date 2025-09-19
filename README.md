@@ -115,6 +115,8 @@ ATTENTION! The AI LaunchKit is currently in development. It is regularly tested 
 | Tool | Description | Use Cases | Access |
 |------|-------------|-----------|--------|
 | **[Flowise](https://github.com/FlowiseAI/Flowise)** | Visual AI agent builder | Chatbots, customer support, AI workflows | `flowise.yourdomain.com` |
+| **[Evolution API](https://github.com/EvolutionAPI/evolution-api)** | WhatsApp Business API | WhatsApp automation, messaging, chatbots | evolutionapi.yourdomain.com |
+| **[Evolution API](https://github.com/EvolutionAPI/evolution-api)** | WhatsApp Business API | WhatsApp automation, messaging, chatbots |  |
 | **[Dify](https://github.com/langgenius/dify)** | LLMOps platform for AI apps | Production AI apps, model management, prompt engineering | `dify.yourdomain.com` |
 | **[Letta](https://github.com/letta-ai/letta)** | Stateful agent server | Persistent AI assistants, memory management | `letta.yourdomain.com` |
 

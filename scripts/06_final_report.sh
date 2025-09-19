@@ -69,6 +69,23 @@ if is_profile_active "flowise"; then
   echo "Password: ${FLOWISE_PASSWORD:-<not_set_in_env>}"
 fi
 
+if is_profile_active "evolutionapi"; then
+  echo
+  echo "================================= Evolution API ======================"
+  echo
+  echo "Manager URL: https://${EVOLUTION_HOSTNAME:-evolutionapi.saits.click}/manager"
+  echo "API Base URL: https://${EVOLUTION_HOSTNAME:-evolutionapi.saits.click}"
+  echo "API Key: ${EVOLUTION_API_KEY:-<not_set>}"
+  echo ""
+  echo "Login im Manager:"
+  echo "  1. Öffne: https://${EVOLUTION_HOSTNAME:-evolutionapi.saits.click}/manager"
+  echo "  2. Server URL: https://${EVOLUTION_HOSTNAME:-evolutionapi.saits.click}"
+  echo "  3. API Key Global: ${EVOLUTION_API_KEY:-<not_set>}"
+  echo ""
+  echo "Internal API URL: http://evolutionapi:8080"
+  echo "API Docs: https://${EVOLUTION_HOSTNAME:-evolutionapi.saits.click}/docs"
+fi
+
 if is_profile_active "bolt"; then
   echo
   echo "================================= Bolt.diy ==========================="
