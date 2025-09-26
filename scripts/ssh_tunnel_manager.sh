@@ -16,7 +16,7 @@ stop_ssh_tunnel() {
     if [ -f "$ssh_tunnel_dir/docker-compose.yml" ]; then
         log_info "Stopping SSH tunnel..."
         cd "$ssh_tunnel_dir"
-        sudo docker compose -p ssh-tunnel down 2>/dev/null || true
+        sudo docker compose -p ssh-tunnel down || true
         log_success "SSH tunnel stopped"
     else
         log_info "No SSH tunnel configuration found - skipping stop"
@@ -48,13 +48,13 @@ start_ssh_tunnel() {
         # Pull image if requested
         if [ "$pull_image" = "true" ]; then
             log_info "Pulling latest SSH tunnel image..."
-            sudo docker compose -p ssh-tunnel pull 2>/dev/null || {
+            sudo docker compose -p ssh-tunnel pull || {
                 log_warning "Failed to pull SSH tunnel image - continuing with existing image"
             }
         fi
         
         log_info "Starting SSH tunnel..."
-        sudo docker compose -p ssh-tunnel up -d 2>/dev/null || {
+        sudo docker compose -p ssh-tunnel up -d || {
             log_error "Failed to start SSH tunnel"
             return 1
         }
@@ -77,7 +77,7 @@ restart_ssh_tunnel() {
         # Pull latest image
         log_info "Pulling latest cloudflared image..."
         cd "$ssh_tunnel_dir"
-        sudo docker compose -p ssh-tunnel pull 2>/dev/null || {
+        sudo docker compose -p ssh-tunnel pull || {
             log_warning "Failed to pull SSH tunnel image - continuing with existing image"
         }
         
