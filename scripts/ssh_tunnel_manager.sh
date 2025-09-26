@@ -15,8 +15,8 @@ stop_ssh_tunnel() {
     
     if [ -f "$ssh_tunnel_dir/docker-compose.yml" ]; then
         log_info "Stopping SSH tunnel..."
-        cd "$project_root"
-        sudo docker compose -p ssh-tunnel -f ssh-tunnel/docker-compose.yml --env-file ssh-tunnel/.env down 2>/dev/null || true
+        cd "$ssh_tunnel_dir"
+        sudo docker compose -p ssh-tunnel down 2>/dev/null || true
         log_success "SSH tunnel stopped"
     else
         log_info "No SSH tunnel configuration found - skipping stop"
@@ -43,18 +43,18 @@ start_ssh_tunnel() {
             return
         fi
         
-        cd "$project_root"
+        cd "$ssh_tunnel_dir"
         
         # Pull image if requested
         if [ "$pull_image" = "true" ]; then
             log_info "Pulling latest SSH tunnel image..."
-            sudo docker compose -p ssh-tunnel -f ssh-tunnel/docker-compose.yml --env-file ssh-tunnel/.env pull 2>/dev/null || {
+            sudo docker compose -p ssh-tunnel pull 2>/dev/null || {
                 log_warning "Failed to pull SSH tunnel image - continuing with existing image"
             }
         fi
         
         log_info "Starting SSH tunnel..."
-        sudo docker compose -p ssh-tunnel -f ssh-tunnel/docker-compose.yml --env-file ssh-tunnel/.env up -d 2>/dev/null || {
+        sudo docker compose -p ssh-tunnel up -d 2>/dev/null || {
             log_error "Failed to start SSH tunnel"
             return 1
         }
@@ -76,8 +76,8 @@ restart_ssh_tunnel() {
         
         # Pull latest image
         log_info "Pulling latest cloudflared image..."
-        cd "$project_root"
-        sudo docker compose -p ssh-tunnel -f ssh-tunnel/docker-compose.yml --env-file ssh-tunnel/.env pull 2>/dev/null || {
+        cd "$ssh_tunnel_dir"
+        sudo docker compose -p ssh-tunnel pull 2>/dev/null || {
             log_warning "Failed to pull SSH tunnel image - continuing with existing image"
         }
         
@@ -97,8 +97,8 @@ status_ssh_tunnel() {
     
     if [ -f "$ssh_tunnel_dir/docker-compose.yml" ]; then
         log_info "SSH tunnel status:"
-        cd "$project_root"
-        sudo docker compose -p ssh-tunnel -f ssh-tunnel/docker-compose.yml --env-file ssh-tunnel/.env ps || true
+        cd "$ssh_tunnel_dir"
+        sudo docker compose -p ssh-tunnel ps || true
     else
         log_info "No SSH tunnel configuration found"
     fi
