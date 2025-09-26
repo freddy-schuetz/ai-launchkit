@@ -346,20 +346,28 @@ if [ $cloudflare_ssh_selected -eq 1 ]; then
     echo "After setup, you can close port 22 in your firewall (with caution!)"
     echo ""
     
-    # Set SSH enabled flag
+    # Ensure ssh-tunnel directory exists
+    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+    PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." &> /dev/null && pwd )"
+    SSH_TUNNEL_DIR="$PROJECT_ROOT/ssh-tunnel"
+    SSH_TUNNEL_ENV="$SSH_TUNNEL_DIR/.env"
+    
+    mkdir -p "$SSH_TUNNEL_DIR"
+    
+    # Set SSH enabled flag in main env
     if grep -q "^CLOUDFLARE_SSH_ENABLED=" "$ENV_FILE"; then
         sed -i.bak "/^CLOUDFLARE_SSH_ENABLED=/d" "$ENV_FILE"
     fi
     echo "CLOUDFLARE_SSH_ENABLED=true" >> "$ENV_FILE"
     
-    # Configure SSH tunnel token
+    # Configure SSH tunnel token in ssh-tunnel/.env
     existing_ssh_token=""
-    if grep -q "^CLOUDFLARE_SSH_TUNNEL_TOKEN=" "$ENV_FILE"; then
-        existing_ssh_token=$(grep "^CLOUDFLARE_SSH_TUNNEL_TOKEN=" "$ENV_FILE" | cut -d'=' -f2- | sed 's/^\"//' | sed 's/\"$//')
+    if [ -f "$SSH_TUNNEL_ENV" ] && grep -q "^CLOUDFLARE_SSH_TUNNEL_TOKEN=" "$SSH_TUNNEL_ENV"; then
+        existing_ssh_token=$(grep "^CLOUDFLARE_SSH_TUNNEL_TOKEN=" "$SSH_TUNNEL_ENV" | cut -d'=' -f2- | sed 's/^\"//' | sed 's/\"$//')
     fi
     
     if [ -n "$existing_ssh_token" ]; then
-        log_info "✅ SSH Tunnel token found in .env; reusing it."
+        log_info "✅ SSH Tunnel token found in ssh-tunnel/.env; reusing it."
     else
         # SSH tunnel always uses separate tunnel (architectural decision)
         echo ""
@@ -369,15 +377,20 @@ if [ $cloudflare_ssh_selected -eq 1 ]; then
         echo ""
         read -p "Enter your SSH Tunnel Token: " input_ssh_token
         
-        if grep -q "^CLOUDFLARE_SSH_TUNNEL_TOKEN=" "$ENV_FILE"; then
-            sed -i.bak "/^CLOUDFLARE_SSH_TUNNEL_TOKEN=/d" "$ENV_FILE"
+        # Write token to ssh-tunnel/.env (create or update)
+        if [ -f "$SSH_TUNNEL_ENV" ] && grep -q "^CLOUDFLARE_SSH_TUNNEL_TOKEN=" "$SSH_TUNNEL_ENV"; then
+            # Update existing token
+            sed -i.bak "/^CLOUDFLARE_SSH_TUNNEL_TOKEN=/d" "$SSH_TUNNEL_ENV"
         fi
-        echo "CLOUDFLARE_SSH_TUNNEL_TOKEN=\"$input_ssh_token\"" >> "$ENV_FILE"
+        
+        # Create or append to ssh-tunnel/.env
+        echo "CLOUDFLARE_SSH_TUNNEL_TOKEN=\"$input_ssh_token\"" >> "$SSH_TUNNEL_ENV"
         
         if [ -n "$input_ssh_token" ]; then
             log_success "✅ SSH Tunnel configured with separate tunnel for enhanced security!"
+            log_info "Token saved to ssh-tunnel/.env"
         else
-            log_warning "SSH Tunnel token was left empty. You can set it later in .env."
+            log_warning "SSH Tunnel token was left empty. You can set it later in ssh-tunnel/.env."
         fi
     fi
     

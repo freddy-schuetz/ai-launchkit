@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  cloudflared-ssh:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared-ssh
+    restart: always
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_SSH_TUNNEL_TOKEN}
+    network_mode: host
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+        limits:
+          memory: 256M
+    mem_reservation: 64m
+    mem_limit: 256m
+    oom_kill_disable: true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep cloudflared || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s

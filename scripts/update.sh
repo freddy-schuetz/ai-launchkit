@@ -85,4 +85,9 @@ fi
 
 # The final success message will now come from apply_update.sh
 log_info "Update script finished." # Changed final message
+
+# Restart SSH tunnel after main update is complete
+log_info "Managing SSH tunnel after update..."
+bash "$SCRIPT_DIR/ssh_tunnel_manager.sh" restart "$PROJECT_ROOT"
+
 exit 0

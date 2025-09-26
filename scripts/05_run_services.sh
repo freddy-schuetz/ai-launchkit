@@ -62,4 +62,11 @@ log_info "Launching services using start_services.py..."
 # Execute start_services.py
 ./start_services.py
 
+# Start SSH tunnel after main services are running
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." &> /dev/null && pwd )"
+
+log_info "Starting SSH tunnel after main services..."
+bash "$SCRIPT_DIR/ssh_tunnel_manager.sh" start "$PROJECT_ROOT"
+
 exit 0 
