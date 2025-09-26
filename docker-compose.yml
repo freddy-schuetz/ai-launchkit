@@ -398,7 +398,7 @@ services:
           memory: 256M
     mem_reservation: 64m
     mem_limit: 256m
-    oom_kill_disable: true
+    oom_score_adj: -900
     logging:
       driver: "json-file"
       options:
