@@ -4,34 +4,55 @@
 
 Cloudflare Tunnel provides zero-trust access to your services without exposing any ports on your server. All traffic is routed through Cloudflare's secure network, providing DDoS protection and hiding your server's IP address.
 
-### ⚠️ Important Architecture Note
+### ⚠️ Important Architecture: Independent Tunnel Services
+Optional deployment of  **web + ssh** Cloudflare Tunnel services:
 
-Cloudflare Tunnel **bypasses Caddy** and connects directly to your services. This means:
-- You get Cloudflare's security features (DDoS protection, Web Application Firewall, etc.)
-- You lose Caddy's authentication features (basic auth for Prometheus, Grafana, etc.)
-- Each service needs its own public hostname configuration in Cloudflare
+1. **Web Services Tunnel** (`cloudflared-web`): Routes web traffic to your applications
+2. **SSH Management Tunnel** (`cloudflared-ssh`): Provides secure SSH access for server administration
+
+**Key Architectural Points:**
+- **Separate tunnels required**: You must create TWO different tunnels in your Cloudflare dashboard
+- **Independent operation**: Each tunnel can be started/stopped/managed separately  
+- **Different network modes**: Web tunnel uses Docker network, SSH tunnel uses host network
+- **Complete port closure**: Both tunnels allow closing ALL server ports (22, 80, 443)
+- **Bypasses Caddy**: Direct service connection means you lose Caddy's auth features
+- **Enhanced security**: Management traffic isolated from user traffic
 
 ### Benefits
-- **No exposed ports** - Ports 80/443 can be completely closed on your firewall
-- **DDoS protection** - Built-in Cloudflare protection
+- **Complete port closure** - ALL ports (22, 80, 443) can be closed on your firewall
+- **Independent tunnel services** - Web and SSH traffic through separate, isolated tunnels
+- **DDoS protection** - Built-in Cloudflare protection for all services
 - **IP hiding** - Your server's real IP is never exposed
 - **Zero-trust security** - Optional Cloudflare Access integration
-- **No public IP required** - Works on private networks
+- **Management isolation** - SSH access separated from user web traffic
+- **High availability** - Independent restart and monitoring for each tunnel
+- **No public IP required** - Works on private networks and behind NAT
 
 ### Setup Instructions
 
-#### 1. Create a Cloudflare Tunnel
+#### 1. Create TWO Separate Cloudflare Tunnels
 
+**Important**: You need to create **two independent tunnels** in your Cloudflare dashboard.
+
+##### Web Services Tunnel (Required)
 1. Go to [Cloudflare Zero Trust Dashboard](https://one.dash.cloudflare.com/)
 2. Navigate to **Access** → **Tunnels**
 3. Click **Create a tunnel**
 4. Choose **Cloudflared** connector
-5. Name your tunnel (e.g., "n8n-installer")
-6. Copy the tunnel token (you'll need this during installation)
+5. Name your tunnel: **"ai-launchkit-web"**
+6. Copy the tunnel token (save as `CLOUDFLARE_TUNNEL_TOKEN` in your .env)
 
-#### 2. Configure Public Hostnames
+##### SSH Management Tunnel (Highly Recommended)
+1. In the same dashboard, click **Create a tunnel** again
+2. Choose **Cloudflared** connector  
+3. Name your tunnel: **"ai-launchkit-ssh"**
+4. Copy this tunnel token (save as `CLOUDFLARE_SSH_TUNNEL_TOKEN` in your .env)
 
-In the tunnel configuration, you need to create a public hostname for **each service** you want to expose. Click **Add a public hostname** for each entry:
+
+### 2. Configure Public Hostnames
+
+#### Web Services Configuration
+In your web tunnel configuration, add public hostnames for services you want to expose:
 
 | Service | Public Hostname | Service URL | Notes |
 |---------|----------------|-------------|-------|
@@ -51,9 +72,20 @@ In the tunnel configuration, you need to create a public hostname for **each ser
 | **Neo4j** | neo4j.yourdomain.com | `http://neo4j:7474` | Graph database |
 | **SearXNG** | searxng.yourdomain.com | `http://searxng:8080` | Private search (⚠️ No auth) |
 
+
+
 **⚠️ Security Warning:** Services marked with "No auth" normally have basic authentication through Caddy. When using Cloudflare Tunnel, you should:
 - Enable [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/applications/) for these services, OR
 - Keep them internal only (don't create public hostnames for them)
+
+#### SSH Management Configuration  
+In your **SSH tunnel** configuration, add TCP service for server administration:
+
+| Service | Public Hostname | Service URL | Notes |
+|---------|----------------|-------------|-------|
+| **SSH** | ssh.yourdomain.com | `tcp://localhost:22` | Server management access |
+
+**Important**: This SSH tunnel configuration must be done manually in your Cloudflare dashboard - it's not automated by the installer.
 
 #### 3. DNS Configuration
 
@@ -78,9 +110,36 @@ When you create public hostnames in the tunnel configuration, Cloudflare automat
 
 Note: Providing the token alone does not auto-enable the tunnel; you must enable the "cloudflare-tunnel" profile in the wizard (or add it to `COMPOSE_PROFILES`).
 
+#### SSH Management Tunnel Configuration
+In your **SSH tunnel** (ai-launchkit-ssh) configuration:
+
+- **Service Type**: TCP
+- **Public hostname**: `ssh.yourdomain.com` 
+- **Service URL**: `tcp://localhost:22`
+
+**Critical**: This SSH tunnel runs with host networking mode and connects directly to your server's SSH daemon on port 22. Once this tunnel is working, you can completely close port 22 on your firewall.
+
+
+**⚠️ Emergency Recovery Plan**: Always ensure you have alternative access (VPS console, emergency recovery) before closing port 22!
+
 #### 5. Secure Your VPS (Recommended)
 
-After confirming services work through the tunnel:
+#### Test SSH Management Access (If Enabled)
+```bash
+# Test SSH through the management tunnel
+ssh username@ssh.yourdomain.com
+
+# Verify you can perform administrative tasks
+ssh username@ssh.yourdomain.com "sudo systemctl status ssh"
+
+# Test both tunnels independently  
+docker compose ps | grep cloudflared
+# Should show both cloudflared-web and cloudflared-ssh if both enabled
+```
+
+### 6. Progressive Security Lockdown 
+
+Once you've confirmed your independent tunnel services work:
 
 ```bash
 # Close web ports (UFW example)
@@ -91,6 +150,30 @@ sudo ufw reload
 
 # Verify only SSH remains open
 sudo ufw status
+```
+
+Close SSH Port (After SSH Tunnel Confirmed Working)
+```bash
+# CRITICAL: Only do this AFTER confirming SSH tunnel works!
+# Test SSH tunnel access first: ssh username@ssh.yourdomain.com
+
+# Close SSH port 22 completely
+sudo ufw delete allow 22/tcp
+sudo ufw reload
+
+# Verify SSH tunnel access still works
+ssh username@ssh.yourdomain.com
+```
+
+Zero-Port Security State  
+```bash
+# Verify your final security posture
+sudo ufw status numbered
+
+# Should show NO open ports:
+# - SSH access: ONLY through Cloudflare SSH tunnel (ssh.yourdomain.com)
+# - Web access: ONLY through Cloudflare web tunnel (*.yourdomain.com)
+# - Complete elimination of direct server access
 ```
 
 ### Choosing Between Caddy and Cloudflare Tunnel
@@ -346,49 +429,28 @@ INF Updated to new configuration
 
 ### Troubleshooting
 
-**"Too many redirects" error:**
+**"Too many redirects" error (Web tunnel):**
 - Make sure you're pointing to the service directly (e.g., `http://n8n:5678`), NOT to Caddy
 - Verify the service URL uses HTTP, not HTTPS
 - Check that DNS records have Proxy status ON (orange cloud)
 
 **"Server not found" error:**
 - Verify DNS records exist for your subdomain
-- Check tunnel is healthy in Cloudflare dashboard
-- Ensure tunnel token is correct in `.env`
+- Check that the correct tunnel is healthy in Cloudflare dashboard
+- Ensure the correct tunnel token is in `.env` (`CLOUDFLARE_TUNNEL_TOKEN` for web, `CLOUDFLARE_SSH_TUNNEL_TOKEN` for SSH)
 
-**Services not accessible:**
-- Verify tunnel status: `docker ps | grep cloudflared`
-- Check tunnel logs: `docker logs cloudflared`
-- Ensure the service is running: `docker ps`
-- Verify service name and port in tunnel configuration
+**Web services not accessible:**
+- Verify web tunnel status: `docker compose ps | grep cloudflared-web`
+- Check web tunnel logs: `docker compose logs cloudflared-web`
+- Ensure the service is running: `docker compose ps`
+- Verify service name and port in web tunnel configuration
 
-**Mixed mode (tunnel + direct access):**
-- You can run both tunnel and traditional Caddy access simultaneously
-- Useful for testing before closing firewall ports
-- Simply keep ports 80/443 open until ready to switch fully to tunnel
-
-### Disabling Tunnel
-
-To disable Cloudflare Tunnel and return to Caddy-only access:
-
-1. Remove from compose profiles:
-   ```bash
-   # Edit .env and remove "cloudflare-tunnel" from COMPOSE_PROFILES
-   nano .env
-   ```
-
-2. Stop the tunnel and restart services:
-   ```bash
-   docker compose -p localai --profile cloudflare-tunnel down
-   docker compose -p localai up -d
-   ```
-
-3. Re-open firewall ports if closed:
-   ```bash
-   sudo ufw allow 80/tcp
-   sudo ufw allow 443/tcp
-   sudo ufw reload
-   ```
+**SSH tunnel not working:**
+- Verify SSH tunnel status: `docker compose ps | grep cloudflared-ssh`
+- Check SSH tunnel logs: `docker compose logs cloudflared-ssh`
+- Ensure SSH daemon is running: `sudo systemctl status ssh`
+- Test local SSH first: `ssh localhost`
+- Verify SSH tunnel configuration points to `tcp://localhost:22`
 
 ### Important Notes
 

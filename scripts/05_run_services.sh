@@ -90,4 +90,16 @@ if [[ "$COMPOSE_PROFILES" == *"tts-chatterbox"* ]]; then
     docker compose -p localai --profile tts-chatterbox up -d
 fi
 
+# Start SSH tunnel after main services are running
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." &> /dev/null && pwd )"
+
+# Check if SSH tunnel is already running
+if docker ps --filter "name=cloudflared-ssh" --filter "status=running" --format "table {{.Names}}" | grep -q "cloudflared-ssh"; then
+    log_info "SSH tunnel is already running - skipping start (will be restarted during update if needed)"
+else
+    log_info "Starting SSH tunnel after main services..."
+    bash "$SCRIPT_DIR/ssh_tunnel_manager.sh" start "$PROJECT_ROOT"
+fi
+
 exit 0 

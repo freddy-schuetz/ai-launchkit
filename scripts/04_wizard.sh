@@ -57,7 +57,8 @@ base_services_data=(
     "openui" "OpenUI (AI Frontend/UI Generator - EXPERIMENTAL, best with Claude/GPT-4)"
     "monitoring" "Monitoring Suite (Prometheus, Grafana, cAdvisor, Node-Exporter)"
     "portainer" "Portainer (Docker management UI)"
-    "cloudflare-tunnel" "Cloudflare Tunnel (Zero-Trust Secure Access)"
+    "cloudflare-tunnel" "Cloudflare Tunnel (Zero-Trust Secure Access for Web Services)"
+    "cloudflare-ssh-tunnel" "Cloudflare SSH Tunnel (Secure SSH via Cloudflare tunnel)"
     "postiz" "Postiz (Social publishing platform)"
     "odoo" "Odoo 18 (Open Source ERP/CRM with AI features)"
     "twenty-crm" "Twenty CRM (Modern Notion-like customer management)"
@@ -277,44 +278,168 @@ if [ ! -f "$ENV_FILE" ]; then
     touch "$ENV_FILE"
 fi
 
-# If Cloudflare Tunnel is selected, prompt for the token and write to .env
-cloudflare_selected=0
+# Configure Cloudflare Web Services Tunnel if selected
+cloudflare_tunnel_selected=0
+cloudflare_ssh_selected=0
+
 for profile in "${selected_profiles[@]}"; do
     if [ "$profile" == "cloudflare-tunnel" ]; then
-        cloudflare_selected=1
-        break
+        cloudflare_tunnel_selected=1
+    elif [ "$profile" == "cloudflare-ssh-tunnel" ]; then
+        cloudflare_ssh_selected=1
     fi
 done
 
-if [ $cloudflare_selected -eq 1 ]; then
-    existing_cf_token=""
+# Handle Cloudflare Web Services Tunnel configuration
+if [ $cloudflare_tunnel_selected -eq 1 ]; then
+    log_info "═══════════════════════════════════════════════════════════════"
+    log_info "🌐 CLOUDFLARE WEB SERVICES TUNNEL CONFIGURATION"
+    log_info "═══════════════════════════════════════════════════════════════"
+    echo ""
+    echo "Configuring secure access to your web services (n8n, flowise, etc.)"
+    echo "through Cloudflare's zero-trust network."
+    echo ""
+    
+    # Check for existing web tunnel token
+    existing_web_token=""
     if grep -q "^CLOUDFLARE_TUNNEL_TOKEN=" "$ENV_FILE"; then
-        existing_cf_token=$(grep "^CLOUDFLARE_TUNNEL_TOKEN=" "$ENV_FILE" | cut -d'=' -f2- | sed 's/^\"//' | sed 's/\"$//')
+        existing_web_token=$(grep "^CLOUDFLARE_TUNNEL_TOKEN=" "$ENV_FILE" | cut -d'=' -f2- | sed 's/^\"//' | sed 's/\"$//')
     fi
 
-    if [ -n "$existing_cf_token" ]; then
-        log_info "Cloudflare Tunnel token found in .env; reusing it."
-        # Do not prompt; keep existing token as-is
+    if [ -n "$existing_web_token" ]; then
+        log_info "✅ Web Services Tunnel token found in .env; reusing it."
     else
-        log_info "Cloudflare Tunnel selected. Please provide your Cloudflare Tunnel token."
         echo ""
-        read -p "Cloudflare Tunnel Token: " input_cf_token
-        token_to_write="$input_cf_token"
-
-        # Update the .env with the token (may be empty if user skipped)
+        echo "Please provide your Cloudflare Web Services Tunnel token."
+        echo "Get this from: Cloudflare Zero Trust Dashboard > Network > Tunnels"
+        echo ""
+        read -p "Cloudflare Web Services Tunnel Token: " input_web_token
+        
+        # Update the .env with the web token
         if grep -q "^CLOUDFLARE_TUNNEL_TOKEN=" "$ENV_FILE"; then
             sed -i.bak "/^CLOUDFLARE_TUNNEL_TOKEN=/d" "$ENV_FILE"
         fi
-        echo "CLOUDFLARE_TUNNEL_TOKEN=\"$token_to_write\"" >> "$ENV_FILE"
-
-        if [ -n "$token_to_write" ]; then
-            log_success "Cloudflare Tunnel token saved to .env."
+        echo "CLOUDFLARE_TUNNEL_TOKEN=\"$input_web_token\"" >> "$ENV_FILE"
+        
+        if [ -n "$input_web_token" ]; then
+            log_success "Web Services Tunnel token saved to .env."
             echo ""
-            echo "🔒 After confirming the tunnel works, consider closing ports 80, 443, and 7687 in your firewall."
+            echo "🔒 After confirming web services work through tunnel,"
+            echo "   consider closing ports 80 and 443 in your firewall."
         else
-            log_warning "Cloudflare Tunnel token was left empty. You can set it later in .env."
+            log_warning "Web Services Tunnel token was left empty. You can set it later in .env."
         fi
     fi
+fi
+
+# Handle Cloudflare SSH Tunnel configuration (independent service)
+if [ $cloudflare_ssh_selected -eq 1 ]; then
+    log_info "═══════════════════════════════════════════════════════════════"
+    log_info "🔐 CLOUDFLARE SSH TUNNEL CONFIGURATION"
+    log_info "═══════════════════════════════════════════════════════════════"
+    echo ""
+    echo "SSH tunnel provides secure access to your server without exposing port 22:"
+    echo "• Secure SSH access without exposing port 22"
+    echo "• Protection against SSH brute force attacks"
+    echo "• Access SSH from anywhere through Cloudflare"
+    echo "• Uses host networking for direct SSH access"
+    echo ""
+    echo "After setup, you can close port 22 in your firewall (with caution!)"
+    echo ""
+    
+    # Ensure ssh-tunnel directory exists
+    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+    PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." &> /dev/null && pwd )"
+    SSH_TUNNEL_DIR="$PROJECT_ROOT/ssh-tunnel"
+    SSH_TUNNEL_ENV="$SSH_TUNNEL_DIR/.env"
+    
+    mkdir -p "$SSH_TUNNEL_DIR"
+    
+    # Set SSH enabled flag in main env
+    if grep -q "^CLOUDFLARE_SSH_ENABLED=" "$ENV_FILE"; then
+        sed -i.bak "/^CLOUDFLARE_SSH_ENABLED=/d" "$ENV_FILE"
+    fi
+    echo "CLOUDFLARE_SSH_ENABLED=true" >> "$ENV_FILE"
+    
+    # Configure SSH tunnel token in ssh-tunnel/.env
+    existing_ssh_token=""
+    if [ -f "$SSH_TUNNEL_ENV" ] && grep -q "^CLOUDFLARE_SSH_TUNNEL_TOKEN=" "$SSH_TUNNEL_ENV"; then
+        existing_ssh_token=$(grep "^CLOUDFLARE_SSH_TUNNEL_TOKEN=" "$SSH_TUNNEL_ENV" | cut -d'=' -f2- | sed 's/^\"//' | sed 's/\"$//')
+    fi
+    
+    if [ -n "$existing_ssh_token" ]; then
+        log_info "✅ SSH Tunnel token found in ssh-tunnel/.env; reusing it."
+    else
+        # SSH tunnel always uses separate tunnel (architectural decision)
+        echo ""
+        log_info "🔐 SSH TUNNEL CONFIGURATION"
+        echo "SSH tunnel requires a separate tunnel from web services for security isolation."
+        echo "Create a dedicated tunnel in Cloudflare for SSH access."
+        echo ""
+        read -p "Enter your SSH Tunnel Token: " input_ssh_token
+        
+        # Write token to ssh-tunnel/.env (create or update)
+        if [ -f "$SSH_TUNNEL_ENV" ] && grep -q "^CLOUDFLARE_SSH_TUNNEL_TOKEN=" "$SSH_TUNNEL_ENV"; then
+            # Update existing token
+            sed -i.bak "/^CLOUDFLARE_SSH_TUNNEL_TOKEN=/d" "$SSH_TUNNEL_ENV"
+        fi
+        
+        # Create or append to ssh-tunnel/.env
+        echo "CLOUDFLARE_SSH_TUNNEL_TOKEN=\"$input_ssh_token\"" >> "$SSH_TUNNEL_ENV"
+        
+        if [ -n "$input_ssh_token" ]; then
+            log_success "✅ SSH Tunnel configured with separate tunnel for enhanced security!"
+            log_info "Token saved to ssh-tunnel/.env"
+        else
+            log_warning "SSH Tunnel token was left empty. You can set it later in ssh-tunnel/.env."
+        fi
+    fi
+    
+    echo ""
+    log_success "🔐 SSH Tunnel configured successfully!"
+    echo ""
+    echo "📋 NEXT STEPS FOR SSH TUNNEL:"
+    echo "1. In Cloudflare Zero Trust Dashboard, add TCP service:"
+    echo "   • Service Type: TCP"
+    echo "   • Public hostname: ssh.yourdomain.com (configure your own)"
+    echo "   • Service URL: tcp://localhost:22"
+    echo ""
+    echo "2. After testing SSH access, you can safely run:"
+    echo "   sudo ufw delete allow 22/tcp"
+    echo "   sudo ufw reload"
+    echo ""
+else
+    # SSH tunnel not selected - ensure it's disabled
+    if grep -q "^CLOUDFLARE_SSH_ENABLED=" "$ENV_FILE"; then
+        sed -i.bak "/^CLOUDFLARE_SSH_ENABLED=/d" "$ENV_FILE"
+    fi
+    echo "CLOUDFLARE_SSH_ENABLED=false" >> "$ENV_FILE"
+fi
+
+# Final security message if any Cloudflare tunnel is configured
+if [ $cloudflare_tunnel_selected -eq 1 ] || [ $cloudflare_ssh_selected -eq 1 ]; then
+    echo ""
+    echo "🔒 SECURITY RECOMMENDATIONS:"
+    if [ $cloudflare_tunnel_selected -eq 1 ]; then
+        echo "Web Services Tunnel - After confirming tunnel works, consider closing:"
+        echo "• Port 80 (HTTP) - if all web services use tunnel"
+        echo "• Port 443 (HTTPS) - if all web services use tunnel"
+        echo "• Port 7687 (Neo4j) - if Neo4j uses tunnel"
+    fi
+    if [ $cloudflare_ssh_selected -eq 1 ]; then
+        echo "SSH Tunnel - After confirming SSH tunnel works, consider closing:"
+        echo "• Port 22 (SSH) - SSH tunnel uses host networking for direct access"
+    fi
+    if [ $cloudflare_tunnel_selected -eq 1 ] && [ $cloudflare_ssh_selected -eq 1 ]; then
+        echo ""
+        echo "🏗️  ARCHITECTURE NOTES:"
+        echo "• Web tunnel: Uses Docker network for container access"
+        echo "• SSH tunnel: Uses host networking for SSH port 22 access"
+        echo "• Both tunnels can operate independently"
+    fi
+    echo ""
+    echo "⚠️  Only close ports AFTER confirming tunnel connectivity!"
+    echo ""
 fi
 
 # Remove existing COMPOSE_PROFILES line if it exists
