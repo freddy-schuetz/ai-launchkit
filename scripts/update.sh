@@ -86,8 +86,45 @@ fi
 # The final success message will now come from apply_update.sh
 log_info "Update script finished." # Changed final message
 
-# Restart SSH tunnel after main update is complete
-log_info "Managing SSH tunnel after update..."
-bash "$SCRIPT_DIR/ssh_tunnel_manager.sh" restart "$PROJECT_ROOT"
+# Check if SSH tunnel is configured and ask user about restart
+SSH_TUNNEL_CONFIG="$PROJECT_ROOT/ssh-tunnel/docker-compose.yml"
+if [ -f "$SSH_TUNNEL_CONFIG" ]; then
+    echo
+    echo "======================================================================"
+    echo "SSH Tunnel Restart Required"
+    echo "======================================================================"
+    echo
+    log_warning "The update process requires restarting the SSH tunnel to use the latest image."
+    log_warning "⚠️  WARNING: If you are connected through the SSH tunnel, this will"
+    log_warning "   temporarily disconnect your session during the restart process."
+    echo
+    echo "The tunnel restart will:"
+    echo "  • Pull the latest cloudflared image"
+    echo "  • Restart the tunnel service"
+    echo "  • Take approximately 10-30 seconds"
+    echo
+    read -p "Do you want to restart the SSH tunnel now? (y/N): " -r restart_tunnel
+    echo
+    
+    case "$restart_tunnel" in
+        [Yy]|[Yy][Ee][Ss])
+            log_info "Restarting SSH tunnel in background process..."
+            echo "Starting SSH tunnel restart in 5 seconds..."
+            echo "If you lose connection, wait 30 seconds and reconnect."
+            echo
+            sleep 5
+            # Use nohup and disown to ensure process survives even if terminal is killed
+            nohup bash "$SCRIPT_DIR/ssh_tunnel_manager.sh" restart "$PROJECT_ROOT" > /tmp/ssh_tunnel_restart.log 2>&1 &
+            disown
+            log_success "SSH tunnel restart initiated in background."
+            echo "Check restart status: tail -f /tmp/ssh_tunnel_restart.log"
+            ;;
+        *)
+            log_info "SSH tunnel restart skipped."
+            log_warning "To restart manually later, run:"
+            log_warning "  bash $SCRIPT_DIR/ssh_tunnel_manager.sh restart $PROJECT_ROOT"
+            ;;
+    esac
+fi
 
 exit 0

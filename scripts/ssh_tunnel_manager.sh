@@ -71,6 +71,9 @@ restart_ssh_tunnel() {
     if [ -f "$ssh_tunnel_dir/docker-compose.yml" ]; then
         log_info "Restarting SSH tunnel with latest image..."
         
+        # Brief pause before stop
+        sleep 2
+
         # Stop the tunnel
         stop_ssh_tunnel "$project_root"
         
