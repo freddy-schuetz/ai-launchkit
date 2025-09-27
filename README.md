@@ -132,6 +132,7 @@ ATTENTION! The AI LaunchKit is currently in development. It is regularly tested 
 |------|-------------|-----------|--------|
 | **[Faster-Whisper](https://github.com/SYSTRAN/faster-whisper)** | OpenAI-compatible Speech-to-Text | Transcription, voice commands, meeting notes | Internal API |
 | **[OpenedAI-Speech](https://github.com/matatonic/openedai-speech)** | OpenAI-compatible Text-to-Speech | Voice assistants, audiobooks, notifications | Internal API |
+| **[TTS Chatterbox](https://github.com/resemble-ai/chatterbox)** | State-of-the-art TTS with emotion control & voice cloning | AI voices with emotional expression, voice synthesis, outperforms ElevenLabs | `chatterbox.yourdomain.com` |
 | **[LibreTranslate](https://github.com/LibreTranslate/LibreTranslate)** | Self-hosted translation API | 50+ languages, document translation, privacy-focused | `translate.yourdomain.com` |
 | **OCR Bundle: [Tesseract](https://github.com/tesseract-ocr/tesseract) & [EasyOCR](https://github.com/JaidedAI/EasyOCR)** | Dual OCR engines: Tesseract (fast) + EasyOCR (quality) | Text extraction from images/PDFs, receipt scanning, document digitization | Internal API |
 | **[Scriberr](https://github.com/rishikanthc/Scriberr)** | AI audio transcription with WhisperX & speaker diarization | Meeting transcripts, podcast processing, call recordings, speaker identification | `scriberr.yourdomain.com` |
@@ -5019,6 +5020,105 @@ Use WAV or MP3 format for best compatibility
 Set correct min/max speakers for accurate diarization
 First transcription downloads models (2-5 minutes)
 Processing time ≈ audio length (30min audio = 30min processing)
+
+# TTS Chatterbox Integration Guide
+
+## 🎤 TTS Chatterbox - Advanced Voice Synthesis
+
+### Features
+- **State-of-the-art TTS** - 63.75% preference over ElevenLabs in blind tests
+- **Emotion control** - Adjust emotional intensity with exaggeration parameter (0.25-2.0)
+- **Voice cloning** - Clone any voice with just 10-30 seconds of audio
+- **Multilingual** - Support for 22+ languages with language-aware synthesis
+- **OpenAI-compatible** - Drop-in replacement for OpenAI TTS API
+- **Built-in watermarking** - PerTh neural watermarking for traceability
+
+### n8n Integration - Text-to-Speech with Emotion
+
+**Configuration:**
+```javascript
+// HTTP Request Node
+Method: POST
+URL: http://chatterbox-tts:4123/v1/audio/speech
+Headers:
+  X-API-Key: {{$env.CHATTERBOX_API_KEY}}
+  Content-Type: application/json
+Body (JSON):
+{
+  "model": "chatterbox",
+  "voice": "default",  // or your cloned voice ID
+  "input": "{{$json.text}}",
+  "response_format": "mp3",
+  "exaggeration": 0.5,  // 0.25=calm, 1.0=normal, 2.0=very emotional
+  "language_id": "en"   // or "de", "fr", "es", etc.
+}
+Response Format: File
+Put Output in Field: data
+```
+
+### Voice Cloning Setup
+
+1. **Prepare voice sample:**
+   ```bash
+   # Create voice directory
+   mkdir -p ~/ai-launchkit/shared/tts/voices
+   
+   # Copy your voice sample (10-30 seconds, WAV/MP3)
+   cp your-voice.wav ~/ai-launchkit/shared/tts/voices/
+   ```
+
+2. **Clone voice via API:**
+   ```javascript
+   // HTTP Request Node for voice cloning
+   Method: POST
+   URL: http://chatterbox-tts:4123/v1/voice/clone
+   Body (Form Data):
+     audio_file: (binary file)
+     voice_name: "my_voice"
+   ```
+
+3. **Use cloned voice:**
+   ```json
+   {
+     "voice": "my_voice",
+     "input": "Text to speak with cloned voice"
+   }
+   ```
+
+### Example Workflow: Dynamic Voice Assistant
+
+```
+1. Webhook Trigger → Receive text + emotion parameter
+2. Set Node → Map emotion to exaggeration value
+   - happy: 1.5
+   - sad: 0.3
+   - excited: 2.0
+   - calm: 0.25
+3. HTTP Request → Generate speech with Chatterbox
+4. Respond to Webhook → Return audio file
+```
+
+### Performance Tips
+
+- **CPU Mode**: ~5-10 seconds per sentence
+- **GPU Mode**: <1 second per sentence (set `CHATTERBOX_DEVICE=cuda`)
+- **Memory**: First model load takes ~2GB RAM
+- **Chunking**: Long texts are automatically split at sentence boundaries
+- **Caching**: Models are cached after first load for faster subsequent requests
+
+### Supported Languages
+
+Arabic, Chinese, Danish, Dutch, English, Finnish, French, German, Greek, Hebrew, Hindi, Italian, Japanese, Korean, Malay, Norwegian, Polish, Portuguese, Russian, Spanish, Swahili + more
+
+## 📚 Resources
+
+### TTS Chatterbox
+- GitHub: https://github.com/travisvn/chatterbox-tts-api
+- Model Info: https://www.resemble.ai/chatterbox/
+- API Docs: http://chatterbox:4123/docs
+
+### n8n Templates
+- Voice Assistant: https://n8n.io/workflows/2092
 
 ### 🔍 OCR Bundle Integration
 

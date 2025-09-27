@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI LaunchKit Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 1rem;
+            font-size: 3rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .subtitle {
+            color: rgba(255,255,255,0.9);
+            text-align: center;
+            margin-bottom: 3rem;
+            font-size: 1.2rem;
+        }
+        .category {
+            margin-bottom: 3rem;
+        }
+        .category-title {
+            color: white;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            padding-left: 1rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.2rem;
+        }
+        .service-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: #333;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: translateX(-100%);
+            transition: transform 0.3s;
+        }
+        .service-card:hover::before {
+            transform: translateX(0);
+        }
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            background: white;
+        }
+        .service-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+        }
+        .service-desc {
+            color: #718096;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .footer {
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+        .domain-info {
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            .category-title { font-size: 1.5rem; }
+            .services-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 AI LaunchKit</h1>
+        <p class="subtitle">Your Complete AI Development & Automation Platform</p>
+        <p class="domain-info" id="domainInfo"></p>
+        
+        <div id="servicesContainer">
+            <!-- Services will be injected here by JavaScript -->
+        </div>
+
+        <div class="footer">
+            <p>🚀 AI LaunchKit v1.0 | Created by Friedemann Schuetz</p>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+                <a href="https://github.com/freddy-schuetz/ai-launchkit" style="color: white; text-decoration: none;">
+                    GitHub Repository
+                </a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Get the current domain
+        const currentDomain = window.location.hostname;
+        const protocol = window.location.protocol;
+        
+        // Display current domain
+        document.getElementById('domainInfo').textContent = `Services running on: ${currentDomain}`;
+
+        // Define all services organized by category
+        const serviceCategories = [
+            {
+                name: "🔧 Workflow Automation",
+                services: [
+                    { subdomain: "n8n", name: "📊 n8n", desc: "Visual workflow automation with 300+ pre-built templates" }
+                ]
+            },
+            {
+                name: "💻 AI-Powered Development",
+                services: [
+                    { subdomain: "bolt", name: "⚡ bolt.diy", desc: "Build full-stack apps with AI prompts" },
+                    { subdomain: "openui", name: "🎨 OpenUI", desc: "AI-powered UI component generation" }
+                ]
+            },
+            {
+                name: "🎨 AI Content Generation",
+                services: [
+                    { subdomain: "comfyui", name: "🖼️ ComfyUI", desc: "Node-based Stable Diffusion for AI art" },
+                    { subdomain: "webui", name: "💬 Open WebUI", desc: "ChatGPT-like interface for LLMs" }
+                ]
+            },
+            {
+                name: "🤖 AI Agents & Platforms",
+                services: [
+                    { subdomain: "flowise", name: "🔄 Flowise", desc: "Visual AI agent builder & chatbots" },
+                    { subdomain: "dify", name: "🏗️ Dify", desc: "LLMOps platform for production AI apps" },
+                    { subdomain: "letta", name: "🧠 Letta", desc: "Stateful AI agents with memory" }
+                ]
+            },
+            {
+                name: "📚 RAG & Vector Databases",
+                services: [
+                    { subdomain: "ragapp", name: "📖 RAGApp", desc: "Build RAG assistants over your data" },
+                    { subdomain: "qdrant", name: "🔍 Qdrant", desc: "High-performance vector database" },
+                    { subdomain: "weaviate", name: "🌐 Weaviate", desc: "AI-native vector DB with GraphQL" }
+                ]
+            },
+            {
+                name: "🎙️ Speech & Language Processing",
+                services: [
+                    { subdomain: "asr", name: "🎤 Faster-Whisper", desc: "OpenAI-compatible Speech-to-Text" },
+                    { subdomain: "tts", name: "🔊 OpenedAI-Speech", desc: "OpenAI-compatible Text-to-Speech" },
+                    { subdomain: "chatterbox", name: "🎭 TTS Chatterbox", desc: "Advanced TTS with emotion & voice cloning" },
+                    { subdomain: "translate", name: "🌍 LibreTranslate", desc: "Self-hosted translation for 50+ languages" },
+                    { subdomain: "scriberr", name: "📝 Scriberr", desc: "AI transcription with speaker diarization" }
+                ]
+            },
+            {
+                name: "🔍 Search & Web Data",
+                services: [
+                    { subdomain: "searxng", name: "🔎 SearXNG", desc: "Privacy-respecting metasearch engine" },
+                    { subdomain: "perplexica", name: "🧪 Perplexica", desc: "Open-source AI-powered search" }
+                ]
+            },
+            {
+                name: "🧠 Knowledge Graphs",
+                services: [
+                    { subdomain: "neo4j", name: "🕸️ Neo4j", desc: "Graph database for knowledge networks" },
+                    { subdomain: "lightrag", name: "💡 LightRAG", desc: "Graph-based RAG with entity extraction" }
+                ]
+            },
+            {
+                name: "💼 Business & Productivity",
+                services: [
+                    { subdomain: "cal", name: "📅 Cal.com", desc: "Open-source scheduling platform" },
+                    { subdomain: "vikunja", name: "✅ Vikunja", desc: "Modern task management with Kanban" },
+                    { subdomain: "leantime", name: "🎯 Leantime", desc: "Goal-oriented project management" },
+                    { subdomain: "time", name: "⏰ Kimai", desc: "Professional time tracking & billing" },
+                    { subdomain: "invoices", name: "💳 Invoice Ninja", desc: "Invoicing & payment platform" },
+                    { subdomain: "baserow", name: "📊 Baserow", desc: "Airtable alternative with real-time collab" },
+                    { subdomain: "nocodb", name: "🗃️ NocoDB", desc: "Smart spreadsheet with API & webhooks" },
+                    { subdomain: "forms", name: "📋 Formbricks", desc: "Privacy-first survey platform" },
+                    { subdomain: "analytics", name: "📈 Metabase", desc: "User-friendly business intelligence" },
+                    { subdomain: "postiz", name: "📱 Postiz", desc: "Social media management platform" }
+                ]
+            },
+            {
+                name: "🏢 CRM & ERP Systems",
+                services: [
+                    { subdomain: "odoo", name: "🏭 Odoo 18", desc: "Open Source ERP/CRM with AI features" },
+                    { subdomain: "twenty", name: "💼 Twenty CRM", desc: "Modern Notion-like CRM" },
+                    { subdomain: "espocrm", name: "🤝 EspoCRM", desc: "Full-featured CRM platform" },
+                    { subdomain: "mautic", name: "🎯 Mautic", desc: "Marketing automation platform" }
+                ]
+            },
+            {
+                name: "📹 Communication",
+                services: [
+                    { subdomain: "meet", name: "🎥 Jitsi Meet", desc: "Professional video conferencing (UDP 10000 required)" },
+                    { subdomain: "mail", name: "📬 Mailpit", desc: "Mail catcher for development" },
+                    { subdomain: "webmail", name: "✉️ SnappyMail", desc: "Modern webmail client" }
+                ]
+            },
+            {
+                name: "💾 Data Infrastructure",
+                services: [
+                    { subdomain: "supabase", name: "🔥 Supabase", desc: "Open-source Firebase alternative" },
+                    { subdomain: "pdf", name: "📄 Stirling-PDF", desc: "Complete PDF toolkit with 100+ features" }
+                ]
+            },
+            {
+                name: "⚙️ System Management",
+                services: [
+                    { subdomain: "vault", name: "🔐 Vaultwarden", desc: "Self-hosted password manager" },
+                    { subdomain: "portainer", name: "🐳 Portainer", desc: "Container management UI" },
+                    { subdomain: "grafana", name: "📊 Grafana", desc: "Metrics visualization platform" },
+                    { subdomain: "prometheus", name: "📉 Prometheus", desc: "Time-series monitoring" },
+                    { subdomain: "backup", name: "💾 Kopia", desc: "Enterprise backup solution" },
+                    { subdomain: "langfuse", name: "🔬 Langfuse", desc: "LLM observability platform" }
+                ]
+            }
+        ];
+
+        // Generate HTML for all services
+        let html = '';
+        serviceCategories.forEach(category => {
+            html += `
+                <div class="category">
+                    <h2 class="category-title">${category.name}</h2>
+                    <div class="services-grid">
+            `;
+            
+            category.services.forEach(service => {
+                const serviceUrl = `${protocol}//${service.subdomain}.${currentDomain}`;
+                html += `
+                    <a href="${serviceUrl}" class="service-card" target="_blank">
+                        <div class="service-name">${service.name}</div>
+                        <div class="service-desc">${service.desc}</div>
+                    </a>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+        });
+
+        // Insert the generated HTML
+        document.getElementById('servicesContainer').innerHTML = html;
+    </script>
+</body>
+</html>

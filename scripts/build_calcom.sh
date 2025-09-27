@@ -40,6 +40,25 @@ if ! grep -q "GOOGLE_API_CREDENTIALS=\$GOOGLE_API_CREDENTIALS" Dockerfile; then
 else
     echo "  -> GOOGLE_API_CREDENTIALS already in ENV block."
 fi
+# --- Patch yarn3/turbo comapility ---
+echo "Patching Dockerfile for Yarn 3 compatibility..."
+
+# Fix: npm instead of yarn global for turbo installation
+if grep -q "RUN yarn global add turbo" Dockerfile; then
+    sed -i 's/RUN yarn global add turbo/RUN npm install -g turbo/' Dockerfile
+    echo "  -> Fixed: Using npm instead of yarn global for turbo"
+else
+    echo "  -> Turbo installation already fixed or not present."
+fi
+
+# Alternative: If yarn is needed
+if grep -q "RUN yarn --cwd apps/web workspace @calcom/web run build" Dockerfile; then
+    # Check for turbo availibility
+    sed -i 's|RUN yarn --cwd apps/web workspace @calcom/web run build|RUN npx turbo run build --filter=@calcom/web|' Dockerfile
+    echo "  -> Fixed: Using npx turbo for web build"
+else
+    echo "  -> Web build command already fixed or different."
+fi
 # --- End of Patch-Blocks ---
 
 

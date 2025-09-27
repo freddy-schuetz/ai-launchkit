@@ -69,6 +69,7 @@ volumes:
   mautic_db_data:
   mautic_redis_data:
   scriberr_data:
+  chatterbox_models:
 
 x-n8n: &service-n8n
   build:
@@ -299,7 +300,9 @@ services:
       - ./caddy-addon:/etc/caddy/addons:ro
       - caddy-data:/data:rw
       - caddy-config:/config:rw
+      - ./website:/srv/website
     environment:
+      - BASE_DOMAIN=${BASE_DOMAIN}
       - COMFYUI_HOSTNAME=${COMFYUI_HOSTNAME}
       - COMFYUI_PASSWORD_HASH=${COMFYUI_PASSWORD_HASH}
       - COMFYUI_USERNAME=${COMFYUI_USERNAME}
@@ -366,6 +369,8 @@ services:
       - METABASE_HOSTNAME=${METABASE_HOSTNAME}
       - STIRLING_HOSTNAME=${STIRLING_HOSTNAME}
       - STIRLING_USERNAME=${STIRLING_USERNAME}
+      - CHATTERBOX_HOSTNAME=${CHATTERBOX_HOSTNAME}
+      - CHATTERBOX_FRONTEND_HOSTNAME=${CHATTERBOX_FRONTEND_HOSTNAME}
       # Mail Services
       - MAILPIT_HOSTNAME=${MAILPIT_HOSTNAME}
       - MAILPIT_USERNAME=${MAILPIT_USERNAME}
@@ -1075,16 +1080,17 @@ services:
       - ./shared:/app/data/inputs
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - LLM_BINDING=ollama
-      - LLM_BINDING_HOST=http://ollama:11434
-      - EMBEDDING_BINDING=ollama
-      - EMBEDDING_BINDING_HOST=http://ollama:11434
-      - LLM_MODEL=llama3.2
-      - EMBEDDING_MODEL=nomic-embed-text
-      - EMBEDDING_DIM=768
+      - LLM_BINDING=openai
+      - LLM_BINDING_HOST=https://api.openai.com/v1
+      - EMBEDDING_BINDING=openai
+      - EMBEDDING_BINDING_HOST=https://api.openai.com/v1
+      - LLM_MODEL=gpt-4o-mini
+      - EMBEDDING_MODEL=text-embedding-3-small
+      - EMBEDDING_DIM=1536
       - WORKSPACE=${LIGHTRAG_WORKSPACE:-default}
       - AUTH_ACCOUNTS=${LIGHTRAG_AUTH_ACCOUNTS}
       - TOKEN_SECRET=${LIGHTRAG_TOKEN_SECRET}
+      - TIMEOUT=600
 
   # Odoo Database Init - Create user and DB
   odoo-init:
@@ -2280,3 +2286,45 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+
+  # ============================================
+  # TTS Chatterbox - State-of-the-Art Text-to-Speech
+  # ============================================
+  chatterbox-tts:
+    build:
+      context: ./chatterbox-frontend
+      dockerfile: docker/Dockerfile
+    container_name: chatterbox-tts
+    profiles: ["tts-chatterbox"]
+    restart: unless-stopped
+    volumes:
+      - chatterbox_models:/app/models
+      - ./shared/tts/voices:/app/voice-samples
+      - ./shared:/data/shared
+    environment:
+      - DEVICE=${CHATTERBOX_DEVICE:-cpu}
+      - EXAGGERATION=${CHATTERBOX_EXAGGERATION:-0.5}
+      - API_KEY=${CHATTERBOX_API_KEY}
+      - MAX_LENGTH=${CHATTERBOX_MAX_LENGTH:-500}
+      - DEFAULT_VOICE=${CHATTERBOX_DEFAULT_VOICE:-default}
+      - MEMORY_CLEANUP_INTERVAL=${CHATTERBOX_MEMORY_CLEANUP:-60}
+      - CUDA_CACHE_CLEAR_INTERVAL=${CHATTERBOX_CUDA_CLEANUP:-120}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4123/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Chatterbox Frontend (Web UI)
+  chatterbox-frontend:
+    build:
+      context: ./chatterbox-frontend/frontend
+      dockerfile: Dockerfile
+    container_name: chatterbox-frontend
+    profiles: ["tts-chatterbox"]
+    restart: unless-stopped
+    depends_on:
+      - chatterbox-tts
+    environment:
+      - VITE_API_URL=http://chatterbox-tts:5123

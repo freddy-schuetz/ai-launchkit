@@ -391,6 +391,13 @@ EOF
             "URL: https://${SCRIBERR_HOSTNAME}\\nAI-powered audio transcription with WhisperX and speaker diarization.\\n\\nScriberr has its own authentication system:\\n- Create account on first access\\n- Generate API keys in the UI for automation\\n\\nModel: ${SCRIBERR_WHISPER_MODEL}\\nInternal API: http://scriberr:8080/api\\n\\nFeatures:\\n- Speaker detection (who said what)\\n- YouTube link transcription\\n- AI summaries with OpenAI/Anthropic"
     fi
 
+    # TTS Chatterbox
+    if is_profile_active "tts-chatterbox"; then
+        add_secure_note \
+            "TTS Chatterbox - Advanced Text-to-Speech" \
+            "URL: https://${CHATTERBOX_HOSTNAME}\\nAPI Key: ${CHATTERBOX_API_KEY}\\nDevice: ${CHATTERBOX_DEVICE:-cpu}\\nEmotion Level: ${CHATTERBOX_EXAGGERATION:-0.5}\\n\\nAPI Endpoints:\\n- OpenAI Compatible: POST /v1/audio/speech\\n- Health: GET /health\\n- Voices: GET /v1/voices\\n- Clone: POST /v1/voice/clone\\n\\nInternal Access: http://chatterbox-tts:4123\\n\\nn8n Integration:\\nHTTP Request node: http://chatterbox-tts:4123/v1/audio/speech\\nHeader: X-API-Key: ${CHATTERBOX_API_KEY}\\n\\nVoice Cloning:\\n1. Place samples in ./shared/tts/voices/\\n2. 10-30 second audio files\\n3. Formats: wav, mp3, ogg, flac\\n\\nPerformance: Outperforms ElevenLabs with emotion control"
+    fi
+
     # Stirling-PDF
     if is_profile_active "stirling-pdf"; then
         add_login_item \

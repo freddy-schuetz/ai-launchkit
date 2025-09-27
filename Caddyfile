@@ -3,6 +3,16 @@
     email {$LETSENCRYPT_EMAIL}
 }
 
+# Main Website (Base Domain)
+{$BASE_DOMAIN} {
+    root * /srv/website
+    file_server
+    encode gzip
+    
+    # Optional: Fallback für SPA oder custom 404
+    try_files {path} /index.html
+}
+
 # N8N
 {$N8N_HOSTNAME} {
     # For domains, Caddy will automatically use Let's Encrypt
@@ -431,9 +441,34 @@ https://{$NEO4J_HOSTNAME}:7687 {
     }
 }
 
-import /etc/caddy/addons/*.conf
+# ============================================
+# TTS Chatterbox API - Advanced Text-to-Speech
+# ============================================
+{$CHATTERBOX_HOSTNAME} {
+    reverse_proxy chatterbox-tts:4123 {
+        flush_interval -1
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up Accept-Ranges bytes
+    }
+}
 
-# # SearXNG
+# ============================================
+# TTS Chatterbox Frontend - Web UI
+# ============================================
+{$CHATTERBOX_FRONTEND_HOSTNAME} {
+    # Frontend UI
+    handle /* {
+        reverse_proxy chatterbox-frontend:80
+    }
+    
+    # API proxy for frontend
+    handle /api/* {
+        reverse_proxy chatterbox-tts:4123
+    }
+}
+
+# SearXNG
 {$SEARXNG_HOSTNAME} {
     @protected not remote_ip 127.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 100.64.0.0/10
 
@@ -498,3 +533,4 @@ import /etc/caddy/addons/*.conf
     }
 }
 
+import /etc/caddy/addons/*.conf

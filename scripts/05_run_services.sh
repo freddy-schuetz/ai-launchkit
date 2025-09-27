@@ -58,9 +58,37 @@ if [ -f "./scripts/setup_postal.sh" ]; then
   bash ./scripts/setup_postal.sh
 fi
 
+# Build services that need local compilation
+source .env
+if [[ "$COMPOSE_PROFILES" == *"tts-chatterbox"* ]]; then
+    log_info "Checking Chatterbox Frontend..."
+    # Clone the repository if not exists
+    if [ ! -d "./chatterbox-frontend/frontend" ]; then
+        log_info "Cloning Chatterbox TTS API repository for frontend..."
+        git clone https://github.com/travisvn/chatterbox-tts-api.git ./chatterbox-frontend || {
+            log_error "Failed to clone Chatterbox repository"
+            log_warning "Chatterbox Frontend will not be available"
+        }
+    fi
+    
+    # Build the frontend if source exists
+    if [ -d "./chatterbox-frontend/frontend" ]; then
+        log_info "Building Chatterbox Frontend from source..."
+        docker compose -p localai build chatterbox-frontend || {
+            log_warning "Failed to build Chatterbox Frontend - API will work but no UI"
+        }
+    fi
+fi
+
 log_info "Launching services using start_services.py..."
 # Execute start_services.py
 ./start_services.py
+
+# Explicitly start services with profiles that need building
+if [[ "$COMPOSE_PROFILES" == *"tts-chatterbox"* ]]; then
+    log_info "Starting Chatterbox services..."
+    docker compose -p localai --profile tts-chatterbox up -d
+fi
 
 # Start SSH tunnel after main services are running
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"

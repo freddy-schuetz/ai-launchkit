@@ -101,6 +101,7 @@ declare -A VARS_TO_GENERATE=(
     ["FORMBRICKS_DB_PASSWORD"]="password:32"
     ["METABASE_ENCRYPTION_KEY"]="apikey:32"
     ["METABASE_DB_PASSWORD"]="password:32"
+    ["CHATTERBOX_API_KEY"]="apikey:32"
     ["MAILPIT_PASSWORD"]="password:32"
     ["SMTP_PASS"]="password:16"
     ["MAIL_NOREPLY_PASSWORD"]="password:32"
@@ -637,6 +638,30 @@ if [[ -n "$BASE_DOMAIN" ]]; then
     # Mailpit hostname (if not already set)
     if [[ -z "${generated_values[MAILPIT_HOSTNAME]}" ]]; then
         generated_values["MAILPIT_HOSTNAME"]="mail.${BASE_DOMAIN}"
+    fi
+    
+    # Chatterbox TTS hostnames (if not already set)
+    if [[ -z "${generated_values[CHATTERBOX_HOSTNAME]}" ]]; then
+        generated_values["CHATTERBOX_HOSTNAME"]="chatterbox.${BASE_DOMAIN}"
+    fi
+    if [[ -z "${generated_values[CHATTERBOX_FRONTEND_HOSTNAME]}" ]]; then
+        generated_values["CHATTERBOX_FRONTEND_HOSTNAME"]="voice.${BASE_DOMAIN}"
+    fi
+fi
+
+# Create website directory and default landing page
+if [ ! -d "./website" ]; then
+    log_info "Creating website directory for landing page..."
+    mkdir -p ./website
+fi
+
+if [ ! -f "./website/index.html" ]; then
+    log_info "Creating default landing page..."
+    if [ -f "./templates/landing-page.html" ]; then
+        cp ./templates/landing-page.html ./website/index.html
+        log_success "Landing page installed at main domain"
+    else
+        log_warning "Landing page template not found in ./templates/"
     fi
 fi
 
