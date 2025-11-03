@@ -3549,6 +3549,493 @@ docker exec seafile /opt/seafile/seafile-server-latest/seaf-gc.sh
 </details>
 
 <details>
+<summary><b>📄 Collabora Online - LibreOffice-based Office Editing Engine</b></summary>
+
+### What is Collabora Online?
+
+Collabora Online is a LibreOffice-based office suite that runs as a backend service, providing powerful document editing capabilities in the browser. In AI LaunchKit, it serves two critical functions: enabling real-time collaborative editing of Office documents directly within Seafile, and providing a document conversion API for n8n workflows. Unlike traditional office suites, Collabora runs entirely as an internal service with no external access or user interface - it's a pure processing engine.
+
+### Features
+
+- **Browser-Based Editing** - Edit DOCX, XLSX, PPTX directly in Seafile web interface
+- **Real-Time Collaboration** - Multiple users can edit documents simultaneously
+- **Format Support** - Microsoft Office (DOCX, XLSX, PPTX) and OpenDocument formats (ODT, ODS, ODP)
+- **Document Conversion API** - REST API for automated format conversions in n8n
+- **No External Access** - Runs entirely within Docker network for security
+- **Lightweight** - Only 2GB RAM required, works on CPU-only servers
+- **WOPI Protocol** - Standard protocol for integration with file storage platforms
+- **Multi-Language** - Spell-check support for German, English, and more
+
+### Architecture
+
+Collabora runs as an **internal backend service** in AI LaunchKit:
+```
+User → Seafile Web UI → Collabora (internal) → Document Editing
+n8n Workflows → Collabora Conversion API → PDF/HTML/etc.
+```
+
+**Important:**
+- ❌ No external domain or subdomain
+- ❌ No admin console or web interface  
+- ❌ No user authentication needed
+- ✅ Accessible only via Docker network
+- ✅ Monitored through Portainer/Grafana
+
+### Initial Setup
+
+**Verify Collabora is Running:**
+```bash
+# Check container status
+docker ps | grep collabora
+
+# Test internal endpoint
+docker exec collabora curl -s http://localhost:9980
+# Should return: OK
+
+# Check WOPI discovery
+docker exec collabora curl -s http://localhost:9980/hosting/discovery | head -20
+# Should return: XML with urlsrc elements
+```
+
+### Seafile Integration
+
+**Enable Office Editing in Seafile:**
+
+1. Edit Seafile configuration:
+```bash
+nano ./seafile-data/seafile/conf/seahub_settings.py
+```
+
+2. Add these lines at the end:
+```python
+# Collabora Online Integration
+OFFICE_SERVER_TYPE = 'CollaboraOffice'
+ENABLE_OFFICE_WEB_APP = True
+
+# IMPORTANT: Use internal Docker URL!
+OFFICE_WEB_APP_BASE_URL = 'http://collabora:9980/hosting/discovery'
+
+# WOPI Token Expiration (30 minutes)
+WOPI_ACCESS_TOKEN_EXPIRATION = 30 * 60
+
+# Supported file formats for viewing
+OFFICE_WEB_APP_FILE_EXTENSION = (
+    'odp', 'ods', 'odt',
+    'xls', 'xlsb', 'xlsm', 'xlsx',
+    'ppsx', 'ppt', 'pptm', 'pptx',
+    'doc', 'docm', 'docx'
+)
+
+# Enable editing
+ENABLE_OFFICE_WEB_APP_EDIT = True
+
+# Supported file formats for editing
+OFFICE_WEB_APP_EDIT_FILE_EXTENSION = (
+    'odp', 'ods', 'odt',
+    'xls', 'xlsb', 'xlsm', 'xlsx',
+    'ppsx', 'ppt', 'pptm', 'pptx',
+    'doc', 'docm', 'docx'
+)
+```
+
+3. Restart Seafile:
+```bash
+docker compose restart seafile
+```
+
+4. Test in Seafile:
+   - Open https://files.yourdomain.com
+   - Create or open a DOCX/XLSX file
+   - It should open in the Collabora editor! ✨
+
+### n8n Conversion API Integration
+
+Collabora provides a powerful REST API for automated document conversion in workflows.
+
+**Basic Conversion (HTTP Request Node):**
+```javascript
+// Convert DOCX to PDF
+Method: POST
+URL: http://collabora:9980/cool/convert-to/pdf
+Authentication: None
+Body Content Type: Multipart-Form-Data
+
+// Body Parameters:
+{
+  "data": "={{ $binary.data }}"  // Your document binary data
+}
+
+// Response: Binary PDF file
+// Store in $binary variable for further processing
+```
+
+**Supported Conversions:**
+
+| From | To | Use Case |
+|------|----|----|
+| DOCX, DOC | PDF, HTML, TXT | Reports, web publishing, text extraction |
+| XLSX, XLS | PDF, CSV, HTML | Data export, archiving, web tables |
+| PPTX, PPT | PDF, PNG, HTML | Presentation archives, thumbnails |
+| ODT, ODS, ODP | PDF, DOCX, XLSX | Format migration, compatibility |
+| TXT, HTML | PDF, DOCX | Document generation from templates |
+
+### Example Workflows
+
+#### Example 1: Automatic PDF Generation from Seafile
+```javascript
+// Monitor Seafile folder, convert new DOCX to PDF
+
+// 1. Seafile Trigger - Watch for new files
+Watch Folder: /Contracts/Unsigned/
+File Pattern: *.docx
+
+// 2. Seafile Node - Download file
+Operation: Download File
+File ID: {{$json.file_id}}
+
+// 3. HTTP Request - Convert to PDF
+Method: POST
+URL: http://collabora:9980/cool/convert-to/pdf
+Body: Multipart-Form-Data
+  data: {{$binary.data}}
+
+// 4. Seafile Node - Upload PDF
+Operation: Upload File
+Library: Contracts
+Path: /Signed/{{$now.format('YYYY-MM')}}/
+Filename: {{$json.name.replace('.docx', '.pdf')}}
+
+// 5. Slack - Notify team
+Message: New contract PDF ready: {{$json.name}}
+```
+
+#### Example 2: Template-Based Report Generation
+```javascript
+// Generate custom reports from HTML templates
+
+// 1. Webhook Trigger - Receive report data
+// JSON with customer info, metrics, etc.
+
+// 2. Code Node - Generate HTML from template
+const html = `
+<!DOCTYPE html>
+<html>
+<head><title>Monthly Report</title></head>
+<body>
+  <h1>Report for ${$json.customer_name}</h1>
+  <p>Revenue: ${$json.revenue}</p>
+  <p>Growth: ${$json.growth}%</p>
+</body>
+</html>
+`;
+
+return { html };
+
+// 3. HTTP Request - HTML to DOCX
+Method: POST
+URL: http://collabora:9980/cool/convert-to/docx
+Body: Multipart-Form-Data
+  data: {{$json.html}}
+  
+// 4. HTTP Request - DOCX to PDF with watermark
+Method: POST  
+URL: http://collabora:9980/cool/convert-to/pdf
+Body: Multipart-Form-Data
+  data: {{$binary.data}}
+  options: {
+    "Watermark": {"type": "string", "value": "CONFIDENTIAL"}
+  }
+
+// 5. Email - Send PDF report
+To: {{$json.customer_email}}
+Subject: Your Monthly Report
+Attachments: {{$binary.data}}
+```
+
+#### Example 3: Batch Document Conversion
+```javascript
+// Convert all DOCX in Seafile folder to PDF nightly
+
+// 1. Schedule Trigger - Daily 2 AM
+Cron: 0 2 * * *
+
+// 2. Seafile Node - List documents
+Operation: List Directory
+Library: Archives
+Path: /Inbox/
+File Pattern: *.docx
+
+// 3. Loop - For each document
+Split into Items: true
+
+// 4. Seafile Node - Download
+Operation: Download File
+File ID: {{$json.id}}
+
+// 5. HTTP Request - Convert to PDF
+Method: POST
+URL: http://collabora:9980/cool/convert-to/pdf
+Body: Multipart-Form-Data
+  data: {{$binary.data}}
+
+// 6. Seafile Node - Upload PDF
+Operation: Upload File
+Library: Archives
+Path: /Processed/{{$now.format('YYYY-MM')}}/
+Filename: {{$json.name.replace('.docx', '.pdf')}}
+
+// 7. Seafile Node - Delete original (optional)
+Operation: Delete File
+File ID: {{$json.id}}
+
+// 8. Aggregate - Count processed files
+// Outside loop
+
+// 9. Email - Summary
+Subject: Batch Conversion Complete
+Body: Processed {{$items.length}} documents
+```
+
+#### Example 4: Invoice Generation with Watermarks
+```javascript
+// Generate invoices with custom watermarks and passwords
+
+// 1. HTTP Request - Get invoice template DOCX
+URL: http://seafile:80/api/v2/files/{{template_id}}/download/
+
+// 2. Code Node - Replace placeholders
+// Use docx library or string replacement
+
+// 3. HTTP Request - Convert to PDF with options
+Method: POST
+URL: http://collabora:9980/cool/convert-to/pdf
+Body: Multipart-Form-Data
+  data: {{$binary.data}}
+  options: JSON.stringify({
+    "Watermark": {
+      "type": "string",
+      "value": "PAID"
+    },
+    "WatermarkColor": {
+      "type": "long",
+      "value": "32768"  // Green
+    },
+    "WatermarkRotateAngle": {
+      "type": "long", 
+      "value": "450"  // 45 degrees
+    },
+    "EncryptFile": {
+      "type": "boolean",
+      "value": "true"
+    },
+    "DocumentOpenPassword": {
+      "type": "string",
+      "value": "INV-{{$json.invoice_number}}"
+    }
+  })
+
+// 4. Email - Send protected invoice
+To: {{$json.customer_email}}
+Subject: Invoice {{$json.invoice_number}}
+Attachments: {{$binary.data}}
+Body: Password: INV-{{$json.invoice_number}}
+```
+
+### Advanced PDF Options
+
+When converting to PDF, you can pass additional options:
+```javascript
+// HTTP Request Body with options parameter
+{
+  "data": "={{ $binary.data }}",
+  "options": JSON.stringify({
+    // Watermark
+    "Watermark": {
+      "type": "string",
+      "value": "CONFIDENTIAL"
+    },
+    "WatermarkColor": {
+      "type": "long",
+      "value": "16711680"  // Red (RGB in decimal)
+    },
+    "WatermarkRotateAngle": {
+      "type": "long",
+      "value": "450"  // 45 degrees
+    },
+    
+    // Page Selection
+    "PageRange": {
+      "type": "string",
+      "value": "1-10"  // Only pages 1-10
+    },
+    
+    // Password Protection
+    "EncryptFile": {
+      "type": "boolean",
+      "value": "true"
+    },
+    "DocumentOpenPassword": {
+      "type": "string",
+      "value": "SecretPassword123"
+    },
+    "RestrictPermissions": {
+      "type": "boolean",
+      "value": "true"
+    }
+  })
+}
+```
+
+### Monitoring & Troubleshooting
+
+**Container Health Check:**
+```bash
+# Is Collabora running?
+docker ps | grep collabora
+# Status should be "Up"
+
+# Memory usage
+docker stats collabora --no-stream
+# ~500MB idle, up to 2GB under load
+
+# Live logs
+docker logs collabora -f
+
+# Last 100 lines
+docker logs collabora --tail 100
+
+# Only errors
+docker logs collabora 2>&1 | grep -i error
+```
+
+**Common Issues:**
+
+**Problem: "Unauthorized WOPI host"**
+```bash
+# Check aliasgroup configuration
+docker inspect collabora | grep aliasgroup1
+# Should contain: https://seafile:8000
+
+# If missing, fix in docker-compose.yml:
+# - aliasgroup1=https://seafile:8000
+
+# Restart container
+docker compose restart collabora
+```
+
+**Problem: Container won't start**
+```bash
+# Check capabilities
+docker inspect collabora | grep -A 10 CapAdd
+# Must have: MKNOD, SYS_CHROOT, SYS_ADMIN, FOWNER, CHOWN
+
+# Review docker-compose.yml and add missing capabilities
+docker compose up -d --force-recreate collabora
+```
+
+**Problem: Conversion API returns 403**
+```bash
+# Check allowed networks
+docker exec collabora grep "net.post_allow.host" /etc/coolwsd/coolwsd.xml
+# Should include Docker networks (172.x.x.x)
+
+# Fix in docker-compose.yml extra_params:
+# --o:net.post_allow.host[0]=172.17.0.0/16
+```
+
+**Problem: Seafile can't connect to Collabora**
+```bash
+# Test from Seafile container
+docker exec seafile curl -s http://collabora:9980
+# Should return: OK
+
+# If connection refused, check Docker network
+docker network inspect ai-launchkit_default
+# Both seafile and collabora must be in same network
+```
+
+### Performance Tuning
+
+**Small Teams (< 10 users):**
+- Default configuration is sufficient
+- 2GB RAM, 2 CPU cores
+
+**Medium Teams (10-50 users):**
+```yaml
+# In docker-compose.yml
+collabora:
+  deploy:
+    resources:
+      limits:
+        memory: 4G
+        cpus: '2.0'
+  environment:
+    - extra_params=... --o:per_document.max_concurrency=8 --o:per_document.idle_timeout_secs=600
+```
+
+**Large Teams (50+ users):**
+- Consider multiple Collabora instances
+- Add load balancing
+- See: https://sdk.collaboraonline.com/docs/installation/Scaling.html
+
+### Security Best Practices
+
+**What's Already Secure:**
+1. ✅ No external port exposure
+2. ✅ WOPI token authentication via Seafile
+3. ✅ Isolated container with chroot
+4. ✅ Conversion API restricted to Docker network
+5. ✅ SSL handled by Caddy at Seafile level
+
+**Maintenance:**
+```bash
+# Regular updates
+docker pull collabora/code:latest
+docker compose up -d collabora
+
+# Monitor suspicious activity
+docker logs collabora 2>&1 | grep -i "error\|warning\|unauthorized"
+
+# Set resource limits (see Performance Tuning)
+```
+
+### Updates
+
+**Update Collabora Container:**
+```bash
+# 1. Pull new image
+docker pull collabora/code:latest
+
+# 2. Recreate container
+docker compose up -d --force-recreate collabora
+
+# 3. Verify
+docker logs collabora --tail 50
+docker exec collabora curl -s http://localhost:9980
+```
+
+**After Updates:**
+```bash
+# Test Seafile integration
+# Open a DOCX in Seafile web interface
+
+# Test conversion API
+docker exec n8n curl -F "data=@/data/shared/test.txt" \
+  http://collabora:9980/cool/convert-to/pdf > /tmp/test.pdf
+```
+
+### Resources
+
+- **Collabora SDK:** https://sdk.collaboraonline.com/
+- **Conversion API Docs:** https://sdk.collaboraonline.com/docs/conversion_api.html
+- **Docker Image:** https://hub.docker.com/r/collabora/code
+- **WOPI Protocol:** https://sdk.collaboraonline.com/docs/How_to_integrate.html
+- **Seafile Integration Guide:** https://manual.seafile.com/deploy/office_documents_preview/
+- **GitHub Issues:** https://github.com/CollaboraOnline/online/issues
+
+</details>
+
+<details>
 <summary><b>📄 Paperless-ngx - Intelligent Document Management System</b></summary>
 
 ### What is Paperless-ngx?

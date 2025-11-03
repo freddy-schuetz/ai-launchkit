@@ -569,6 +569,52 @@ if is_profile_active "seafile"; then
   echo "Documentation: https://manual.seafile.com/"
 fi
 
+if is_profile_active "collabora"; then
+  echo
+  echo "======================= Collabora Online ========================="
+  echo
+  echo "Status: Internal Backend Service (no external domain)"
+  echo "Container: collabora"
+  echo "Internal URL: http://collabora:9980"
+  echo
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo
+  echo "🔍 Status Check:"
+  echo "  docker ps | grep collabora"
+  echo "  docker exec collabora curl -s http://localhost:9980"
+  echo "  # Should return: OK"
+  echo
+  echo "🔗 Seafile Integration:"
+  echo "  1. Edit configuration:"
+  echo "     nano ./seafile-data/seafile/conf/seahub_settings.py"
+  echo
+  echo "  2. Add at the end:"
+  echo "     OFFICE_SERVER_TYPE = 'CollaboraOffice'"
+  echo "     ENABLE_OFFICE_WEB_APP = True"
+  echo "     OFFICE_WEB_APP_BASE_URL = 'http://collabora:9980/hosting/discovery'"
+  echo "     ENABLE_OFFICE_WEB_APP_EDIT = True"
+  echo
+  echo "  3. Restart Seafile:"
+  echo "     docker compose restart seafile"
+  echo
+  echo "🤖 n8n Document Conversion:"
+  echo "  HTTP Request Node:"
+  echo "    Method: POST"
+  echo "    URL: http://collabora:9980/cool/convert-to/pdf"
+  echo "    Body: multipart-form-data with 'data' field"
+  echo
+  echo "  Supported conversions:"
+  echo "    • DOCX/DOC → PDF, HTML, TXT"
+  echo "    • XLSX/XLS → PDF, CSV, HTML"
+  echo "    • PPTX/PPT → PDF, PNG, HTML"
+  echo
+  echo "📊 Monitoring:"
+  echo "  Logs: docker logs collabora --tail 50"
+  echo "  Stats: docker stats collabora --no-stream"
+  echo
+  echo "Documentation: https://sdk.collaboraonline.com/"
+fi
+
 if is_profile_active "paperless"; then
   echo
   echo "========================== Paperless-ngx ============================"

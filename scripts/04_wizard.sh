@@ -69,6 +69,7 @@ base_services_data=(
     "baserow" "Baserow (Airtable Alternative)"
     "nocodb" "NocoDB (Open-source Airtable alternative, smart spreadsheet UI)"
     "seafile" "Seafile (File sync & share like Dropbox/Google Drive/OneDrive)"
+    "collabora" "Collabora Online (Office editing for Seafile, document conversion for n8n)"
     "paperless" "Paperless-ngx (Document management with OCR & AI tagging)"
     "vikunja" "Vikunja (Modern Task Management - Todoist/TickTick alternative)"
     "leantime" "Leantime - Full project management suite (Asana/Monday alternative)"

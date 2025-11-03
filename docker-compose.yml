@@ -92,6 +92,7 @@ volumes:
   hoppscotch_postgres:
   uptime-kuma_data:
   airbyte_destination_data:
+  collabora_data:
 
 x-n8n: &service-n8n
   build:
@@ -3080,3 +3081,22 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # ============================================================================
+  # COLLABORA ONLINE - LibreOffice Online Backend (Internal Service)
+  # ============================================================================
+  collabora:
+    image: collabora/code:latest
+    container_name: collabora
+    profiles: ["collabora"]
+    restart: unless-stopped
+    cap_add:
+      - MKNOD
+      - SYS_CHROOT
+      - SYS_ADMIN
+      - FOWNER
+      - CHOWN
+    environment:
+      - aliasgroup1=https://seafile:8000
+      - extra_params=--o:ssl.enable=false --o:admin_console.enable=false --o:logging.level=warning --o:net.post_allow.host[0]=172.17.0.0/16 --o:net.post_allow.host[1]=172.18.0.0/16 --o:net.post_allow.host[2]=172.19.0.0/16
+      - dictionaries=de_DE en_US en_GB
