@@ -712,4 +712,12 @@ https://{$NEO4J_HOSTNAME}:7687 {
     reverse_proxy 172.18.0.1:8001
 }
 
+# Collabora Online
+{$COLLABORA_HOSTNAME} {
+    basic_auth {
+        {$COLLABORA_USERNAME} {$COLLABORA_PASSWORD_HASH}
+    }
+    reverse_proxy collabora:9980
+}
+
 import /etc/caddy/addons/*.conf

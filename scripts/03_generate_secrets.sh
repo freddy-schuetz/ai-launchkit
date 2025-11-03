@@ -129,6 +129,7 @@ declare -A VARS_TO_GENERATE=(
     ["HOPPSCOTCH_DATA_ENCRYPTION_KEY"]="alphanum:32"
     ["AIRBYTE_PASSWORD"]="password:32"
     ["AIRBYTE_DESTINATION_DB_PASSWORD"]="password:32"
+    ["COLLABORA_PASSWORD"]="password:32"
     ["MAILPIT_PASSWORD"]="password:32"
     ["SMTP_PASS"]="password:16"
     ["MAIL_NOREPLY_PASSWORD"]="password:32"
@@ -650,6 +651,7 @@ generated_values["SEAFILE_ADMIN_EMAIL"]="$USER_EMAIL"
 generated_values["PAPERLESS_ADMIN_EMAIL"]="$USER_EMAIL"
 generated_values["WEBHOOK_TESTER_USERNAME"]="$USER_EMAIL"
 generated_values["AIRBYTE_USERNAME"]="admin"  # Airbyte uses fixed admin username
+generated_values["COLLABORA_USERNAME"]="$USER_EMAIL"
 generated_values["MAILPIT_USERNAME"]="$USER_EMAIL"  # Set Mailpit username for Caddy
 
 if [[ -n "$OPENAI_API_KEY" ]]; then
@@ -1143,6 +1145,18 @@ if [[ -z "$FINAL_GPTR_HASH" && -n "$GPTR_PLAIN_PASS" ]]; then
     fi
 fi
 _update_or_add_env_var "GPTR_PASSWORD_HASH" "$FINAL_GPTR_HASH"
+
+# --- COLLABORA ---
+COLLABORA_PLAIN_PASS="${generated_values["COLLABORA_PASSWORD"]}"
+FINAL_COLLABORA_HASH="${generated_values[COLLABORA_PASSWORD_HASH]}"
+if [[ -z "$FINAL_COLLABORA_HASH" && -n "$COLLABORA_PLAIN_PASS" ]]; then
+    NEW_HASH=$(_generate_and_get_hash "$COLLABORA_PLAIN_PASS")
+    if [[ -n "$NEW_HASH" ]]; then
+        FINAL_COLLABORA_HASH="$NEW_HASH"
+        generated_values["COLLABORA_PASSWORD_HASH"]="$NEW_HASH"
+    fi
+fi
+_update_or_add_env_var "COLLABORA_PASSWORD_HASH" "$FINAL_COLLABORA_HASH"
 
 # --- INVOICE NINJA APP_KEY ---
 # Special handling for Invoice Ninja APP_KEY (must be generated with Laravel)

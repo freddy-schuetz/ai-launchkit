@@ -573,8 +573,11 @@ if is_profile_active "collabora"; then
   echo
   echo "======================= Collabora Online ========================="
   echo
-  echo "Status: Internal Backend Service (no external domain)"
-  echo "Container: collabora"
+  echo "Host: ${COLLABORA_HOSTNAME:-<hostname_not_set>}"
+  echo "Username: ${COLLABORA_USERNAME}"
+  echo "Password: ${COLLABORA_PASSWORD:-<not_set>}"
+  echo
+  echo "Access: https://${COLLABORA_HOSTNAME:-<hostname_not_set>}"
   echo "Internal URL: http://collabora:9980"
   echo
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -586,15 +589,16 @@ if is_profile_active "collabora"; then
   echo
   echo "🔗 Seafile Integration:"
   echo "  1. Edit configuration:"
-  echo "     nano ./seafile-data/seafile/conf/seahub_settings.py"
+  echo "     docker exec seafile bash -c \"cat >> /shared/seafile/conf/seahub_settings.py << 'EOF'"
+  echo ""
+  echo "# Collabora Online Integration"
+  echo "OFFICE_SERVER_TYPE = 'CollaboraOffice'"
+  echo "ENABLE_OFFICE_WEB_APP = True"
+  echo "OFFICE_WEB_APP_BASE_URL = 'https://${COLLABORA_HOSTNAME:-<hostname_not_set>}/hosting/discovery'"
+  echo "ENABLE_OFFICE_WEB_APP_EDIT = True"
+  echo "EOF\""
   echo
-  echo "  2. Add at the end:"
-  echo "     OFFICE_SERVER_TYPE = 'CollaboraOffice'"
-  echo "     ENABLE_OFFICE_WEB_APP = True"
-  echo "     OFFICE_WEB_APP_BASE_URL = 'http://collabora:9980/hosting/discovery'"
-  echo "     ENABLE_OFFICE_WEB_APP_EDIT = True"
-  echo
-  echo "  3. Restart Seafile:"
+  echo "  2. Restart Seafile:"
   echo "     docker compose restart seafile"
   echo
   echo "🤖 n8n Document Conversion:"

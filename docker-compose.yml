@@ -452,6 +452,9 @@ services:
       - HOPPSCOTCH_HOSTNAME=${HOPPSCOTCH_HOSTNAME}
       - UPTIME_KUMA_HOSTNAME=${UPTIME_KUMA_HOSTNAME}
       - AIRBYTE_HOSTNAME=${AIRBYTE_HOSTNAME}
+      - COLLABORA_HOSTNAME=${COLLABORA_HOSTNAME}
+      - COLLABORA_USERNAME=${COLLABORA_USERNAME}
+      - COLLABORA_PASSWORD_HASH=${COLLABORA_PASSWORD_HASH}
       # Mail Services
       - MAILPIT_HOSTNAME=${MAILPIT_HOSTNAME}
       - MAILPIT_USERNAME=${MAILPIT_USERNAME}
@@ -3097,6 +3100,6 @@ services:
       - FOWNER
       - CHOWN
     environment:
-      - aliasgroup1=https://seafile:8000
+      - aliasgroup1=http://seafile:80
       - extra_params=--o:ssl.enable=false --o:admin_console.enable=false --o:logging.level=warning --o:net.post_allow.host[0]=172.17.0.0/16 --o:net.post_allow.host[1]=172.18.0.0/16 --o:net.post_allow.host[2]=172.19.0.0/16
       - dictionaries=de_DE en_US en_GB
