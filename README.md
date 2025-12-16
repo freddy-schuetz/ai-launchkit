@@ -33,6 +33,8 @@ AI LaunchKit is a comprehensive, self-hosted AI development environment that dep
 
 Originally forked from [n8n-installer](https://github.com/kossakovsky/n8n-installer), AI LaunchKit has evolved into a complete AI development platform, maintained by [Friedemann Schuetz](https://www.linkedin.com/in/friedemann-schuetz).
 
+**AI LaunchKit is n8n 2.0 ready!** Just install/update to get the latest n8n version.
+
 ### 🔒 Privacy-First & GDPR Compliant by Design
 
 AI LaunchKit was built with **European data protection regulations** at its core. Unlike cloud AI services that send your data to US servers, everything runs on your infrastructure.
