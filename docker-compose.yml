@@ -2151,6 +2151,7 @@ services:
       - invoiceninja_public:/var/www/app/public
       - invoiceninja_storage:/var/www/app/storage
       - ./shared:/data/shared
+      - ./invoiceninja-memory.ini:/usr/local/etc/php/conf.d/99-memory.ini:ro
     environment:
       # Application Settings
       - APP_ENV=production
