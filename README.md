@@ -173,6 +173,7 @@ git clone https://github.com/freddy-schuetz/ai-launchkit && cd ai-launchkit && s
 |------|-------------|-----------|--------|
 | **[bolt.diy](https://github.com/stackblitz-labs/bolt.diy)** | Build full-stack apps with prompts | Rapid prototyping, MVP creation, learning to code | `bolt.yourdomain.com` |
 | **[OpenUI](https://github.com/wandb/openui)** 🧪 | AI-powered UI component generation | Design systems, component libraries, mockups | `openui.yourdomain.com` |
+| **[code-server](https://github.com/coder/code-server)** | VS Code in the browser with AI extensions | Remote development, Claude Code, AI-assisted coding | `code.yourdomain.com` |
 
 ### 🤖 AI Agents
 

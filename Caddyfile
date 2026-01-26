@@ -769,4 +769,9 @@ https://{$NEO4J_HOSTNAME}:7687 {
     reverse_proxy docuseal:3000
 }
 
+# Code-Server - VS Code in the Browser
+{$CODESERVER_HOSTNAME} {
+    reverse_proxy code-server:8443
+}
+
 import /etc/caddy/addons/*.conf

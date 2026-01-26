@@ -59,6 +59,7 @@ base_services_data=(
     "flowise" "Flowise (AI Agent Builder)"
     "bolt" "bolt.diy (AI Web Development)"
     "openui" "OpenUI (AI Frontend/UI Generator - EXPERIMENTAL, best with Claude/GPT-4)"
+    "code-server" "Code-Server (VS Code in Browser - AI coding with Claude Code/OpenCode)"
     "monitoring" "Monitoring Suite (Prometheus, Grafana, cAdvisor, Node-Exporter)"
     "uptime-kuma" "Uptime Kuma (Uptime Monitoring & Status Pages)"
     "portainer" "Portainer (Docker management UI)"

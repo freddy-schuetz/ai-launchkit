@@ -15769,6 +15769,320 @@ See [bolt.diy section](#ai-powered-development) for full documentation.
 
 </details>
 
+<details>
+<summary><b>🖥️ code-server - VS Code in the Browser</b></summary>
+
+### What is code-server?
+
+code-server is a full VS Code experience running in your browser, allowing you to code from any device with a consistent development environment. Combined with AI extensions like Claude Code and OpenCode, it transforms into a powerful AI-assisted development platform that rivals cloud-based solutions while keeping your data self-hosted.
+
+### Features
+
+- **Full VS Code**: Complete VS Code experience with all features and keybindings
+- **AI Extensions**: Support for Claude Code, OpenCode, Continue, and other AI coding assistants
+- **Persistent Workspace**: Your files, settings, and extensions persist across sessions
+- **Terminal Access**: Full terminal access with sudo capabilities
+- **Extension Marketplace**: Access to Open VSX Registry for extensions
+- **Shared Folder**: Direct access to AI LaunchKit's shared folder for integration with other services
+- **Mobile Friendly**: Works on tablets and even phones in a pinch
+
+### Initial Setup
+
+**First Access to code-server:**
+1. Navigate to `https://code.yourdomain.com`
+2. Enter your password (from `.env`: `CODESERVER_PASSWORD`)
+3. VS Code loads in your browser - ready to code!
+
+**Recommended Extensions to Install:**
+
+Open the Extensions panel (Ctrl+Shift+X) and install:
+
+| Extension | Purpose | Installation |
+|-----------|---------|--------------|
+| **Claude Code** | AI coding assistant by Anthropic | Search "Claude" in extensions |
+| **Continue** | Open-source AI autocomplete | Search "Continue" |
+| **OpenCode** | Ollama integration for local AI | Search "OpenCode" |
+| **GitLens** | Enhanced Git integration | Search "GitLens" |
+| **Python** | Python language support | Search "Python" |
+| **Prettier** | Code formatting | Search "Prettier" |
+
+**Configure Claude Code Extension:**
+1. Install Claude Code extension
+2. Open Command Palette (Ctrl+Shift+P)
+3. Search "Claude: Set API Key"
+4. Enter your Anthropic API key
+5. Start coding with AI assistance!
+
+**Configure Continue (for Ollama):**
+1. Install Continue extension
+2. Click Continue icon in sidebar
+3. Configure model:
+```json
+   {
+     "models": [{
+       "title": "Ollama",
+       "provider": "ollama",
+       "model": "qwen2.5:7b-instruct-q4_K_M",
+       "apiBase": "http://ollama:11434"
+     }]
+   }
+```
+4. Use Ctrl+L to chat, Ctrl+I for inline edits
+
+### n8n Integration Setup
+
+**Workflow Pattern: Code Development Pipeline**
+```javascript
+// 1. Webhook Trigger
+// Receive code review requests or file changes
+
+// 2. Code Node: Prepare file for processing
+const filePath = '/config/workspace/shared/' + $json.filename;
+const fileContent = $json.content;
+
+return { 
+  path: filePath,
+  content: fileContent,
+  action: 'review'
+};
+
+// 3. HTTP Request to Ollama
+// Send code for AI review
+// URL: http://ollama:11434/api/generate
+// Body: { "model": "qwen2.5:7b-instruct", "prompt": "Review this code:\n" + fileContent }
+
+// 4. Write File Node
+// Save review results to shared folder
+
+// 5. Notification
+// Send results via email/Slack/Discord
+```
+
+**Shared Folder Integration:**
+- code-server workspace: `/config/workspace/shared`
+- n8n access: `./shared` folder
+- Both services can read/write to the same files!
+
+**Internal URL:** `http://code-server:8443` (for internal service-to-service communication)
+
+### Example Use Cases
+
+#### Example 1: AI-Assisted Python Development
+
+**Scenario**: Develop Python scripts for n8n automation
+```bash
+# In code-server terminal:
+cd /config/workspace/shared
+
+# Create a new Python script
+touch data_processor.py
+
+# Use Claude Code to help write it:
+# 1. Open the file
+# 2. Type a comment describing what you need:
+#    "# Script to process CSV files from n8n and extract email addresses"
+# 3. Use Claude Code: Ctrl+Shift+P → "Claude: Generate Code"
+# 4. Review and refine the generated code
+
+# Test the script
+python data_processor.py sample.csv
+
+# The script is now available in n8n's shared folder!
+```
+
+#### Example 2: Editing n8n Workflow Files
+
+**Scenario**: Bulk edit n8n workflow JSON files
+```bash
+# Access shared n8n exports
+cd /config/workspace/shared/n8n-exports
+
+# Use VS Code's multi-file search (Ctrl+Shift+F)
+# Find all workflows using a specific node
+# Search: "httpRequest"
+
+# Use Claude Code to help refactor:
+# "Update all HTTP Request nodes to use the new authentication method"
+
+# Save changes - n8n can import the modified workflows
+```
+
+#### Example 3: Full-Stack Development with Gitea
+
+**Scenario**: Develop and version control your projects
+```bash
+# Clone from your Gitea instance
+git clone http://gitea:3000/username/my-project.git
+
+# Open project in code-server
+cd my-project
+
+# Develop with AI assistance
+# - Claude Code for complex logic
+# - Continue for autocomplete
+# - Terminal for testing
+
+# Commit and push
+git add .
+git commit -m "feat: add new feature with AI assistance"
+git push origin main
+```
+
+### Development Workflow
+
+**Recommended Workspace Structure:**
+```
+/config/workspace/
+├── shared/           # Shared with n8n, Ollama, etc.
+│   ├── scripts/      # Python/Node scripts for automation
+│   ├── data/         # Data files for processing
+│   └── exports/      # Exported workflows/configs
+├── projects/         # Your development projects
+│   ├── webapp/       # Web applications
+│   └── api/          # API projects
+└── .vscode/          # VS Code settings (persistent)
+    └── settings.json
+```
+
+**Best Practices:**
+- **Use Shared Folder**: Place files that need to be accessed by other services in `/config/workspace/shared`
+- **Install Extensions Once**: Extensions persist across sessions
+- **Configure Git**: Set up Git credentials for seamless version control
+- **Use Terminal**: Full Linux terminal available with sudo access
+- **Keyboard Shortcuts**: Same as desktop VS Code - muscle memory works!
+
+### Troubleshooting
+
+**Cannot Access code-server:**
+```bash
+# 1. Check if code-server is running
+docker ps | grep code-server
+
+# 2. Check logs for errors
+docker logs code-server -f
+
+# 3. Verify Caddy is routing correctly
+docker logs caddy | grep code-server
+
+# 4. Check CODESERVER_HOSTNAME in .env
+grep CODESERVER_HOSTNAME .env
+
+# 5. Restart the service
+docker compose restart code-server
+```
+
+**Extensions Not Installing:**
+```bash
+# 1. Check network connectivity from container
+docker exec code-server ping -c 3 open-vsx.org
+
+# 2. Check disk space
+docker exec code-server df -h /config
+
+# 3. Try installing via terminal
+docker exec code-server code-server --install-extension ms-python.python
+
+# 4. Check extension logs
+# In VS Code: Help → Toggle Developer Tools → Console
+```
+
+**AI Extensions Not Working:**
+```bash
+# 1. Verify API keys are configured
+# In VS Code: Ctrl+Shift+P → "Claude: Set API Key"
+
+# 2. Check Ollama connectivity (for local AI)
+docker exec code-server curl -s http://ollama:11434/api/tags
+
+# 3. Test Claude API directly
+curl https://api.anthropic.com/v1/messages \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "content-type: application/json" \
+  -d '{"model":"claude-sonnet-4-20250514","max_tokens":10,"messages":[{"role":"user","content":"Hi"}]}'
+
+# 4. Restart code-server
+docker compose restart code-server
+```
+
+**Terminal or Sudo Not Working:**
+```bash
+# 1. Check if sudo password is set
+grep CODESERVER_SUDO_PASSWORD .env
+
+# 2. Test sudo access
+docker exec -it code-server sudo ls /root
+
+# 3. Check user permissions
+docker exec code-server id
+# Should show uid=1000 and groups
+
+# 4. Reinstall if needed
+docker compose down code-server
+docker compose up -d code-server
+```
+
+**Slow Performance:**
+```bash
+# 1. Check container resources
+docker stats code-server
+
+# 2. Increase memory limit if needed (edit docker-compose.yml)
+# deploy:
+#   resources:
+#     limits:
+#       memory: 2G
+
+# 3. Disable unnecessary extensions
+# Extensions can consume significant resources
+
+# 4. Clear VS Code cache
+docker exec code-server rm -rf /config/.local/share/code-server/Cache
+docker compose restart code-server
+```
+
+### Integration with AI LaunchKit Services
+
+**code-server + Ollama:**
+- Use Continue extension with local Ollama models
+- No API costs for AI assistance
+- Full privacy for sensitive code
+- Configure: `http://ollama:11434` as API base
+
+**code-server + Gitea:**
+- Clone repositories directly: `git clone http://gitea:3000/user/repo.git`
+- Push/pull with seamless authentication
+- Code review with AI assistance before committing
+
+**code-server + n8n:**
+- Edit scripts in `/config/workspace/shared`
+- Scripts immediately available in n8n's shared folder
+- Develop custom nodes and functions
+
+**code-server + Paperless-ngx:**
+- Develop OCR processing scripts
+- Access documents via shared folder
+- Build custom document workflows
+
+### Resources
+
+- **Official Documentation**: [coder.com/docs/code-server](https://coder.com/docs/code-server)
+- **GitHub Repository**: [github.com/coder/code-server](https://github.com/coder/code-server)
+- **LinuxServer.io Image**: [docs.linuxserver.io/images/docker-code-server](https://docs.linuxserver.io/images/docker-code-server)
+- **VS Code Documentation**: [code.visualstudio.com/docs](https://code.visualstudio.com/docs)
+- **Open VSX Registry**: [open-vsx.org](https://open-vsx.org) (Extension marketplace)
+
+### Security Notes
+
+- **Password Authentication**: code-server uses its own password authentication (set via `CODESERVER_PASSWORD`)
+- **Sudo Access**: `CODESERVER_SUDO_PASSWORD` grants root access - use strong passwords!
+- **HTTPS Only**: Always access via HTTPS to protect your code and credentials
+- **API Keys**: Store API keys in VS Code's secure storage, not in files
+- **Shared Folder**: Be aware that `/config/workspace/shared` is accessible by other services
+- **No Public Exposure**: Consider using Cloudflare Tunnel for additional security
+
+</details>
+
 ### AI Agents
 
 <details>

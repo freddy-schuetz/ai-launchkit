@@ -235,6 +235,16 @@ EOF
             "AI-powered web development in the browser. Protected with Basic Auth."
     fi
 
+    # Code-Server
+    if is_profile_active "code-server"; then
+        add_login_item \
+            "Code-Server - VS Code in Browser" \
+            "user" \
+            "${CODESERVER_PASSWORD}" \
+            "https://${CODESERVER_HOSTNAME}" \
+            "VS Code in the browser for AI-assisted development. Password authentication (no username needed, but 'user' shown for reference). Sudo password: ${CODESERVER_SUDO_PASSWORD}. Workspace: /config/workspace. Shared folder: /config/workspace/shared. Internal: http://code-server:8443"
+    fi
+
     # Open WebUI
     if is_profile_active "open-webui"; then
         add_login_item \

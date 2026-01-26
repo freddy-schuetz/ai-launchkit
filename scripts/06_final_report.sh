@@ -184,6 +184,38 @@ if is_profile_active "openui"; then
   echo "Documentation: https://github.com/wandb/openui"
 fi
 
+if is_profile_active "code-server"; then
+  echo
+  echo "================================= Code-Server ========================="
+  echo
+  echo "🖥️  VS Code in the Browser - AI Coding with Claude Code/OpenCode"
+  echo
+  echo "Host: ${CODESERVER_HOSTNAME:-<hostname_not_set>}"
+  echo
+  echo "Access:"
+  echo "  External (HTTPS): https://${CODESERVER_HOSTNAME:-<hostname_not_set>}"
+  echo "  Internal (Docker): http://code-server:8443"
+  echo
+  echo "Authentication:"
+  echo "  Password: ${CODESERVER_PASSWORD:-<not_set_in_env>}"
+  echo "  Sudo Password: ${CODESERVER_SUDO_PASSWORD:-<not_set_in_env>}"
+  echo
+  echo "Workspace:"
+  echo "  Default: /config/workspace"
+  echo "  Shared Folder: /config/workspace/shared (synced with ./shared)"
+  echo
+  echo "Recommended Extensions:"
+  echo "  - Claude Code (AI coding assistant)"
+  echo "  - OpenCode (Ollama integration)"
+  echo "  - Continue (local AI autocomplete)"
+  echo
+  echo "n8n Integration:"
+  echo "  Edit workflows in ./shared folder"
+  echo "  Access from code-server at /config/workspace/shared"
+  echo
+  echo "Documentation: https://coder.com/docs/code-server"
+fi
+
 if is_profile_active "dify"; then
   echo
   echo "================================= Dify ================================="

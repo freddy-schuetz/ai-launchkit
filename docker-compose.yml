@@ -104,6 +104,7 @@ volumes:
   docuseal_postgres_data:
   docuseal_data:
   dex_data:
+  codeserver_data:
 
 x-n8n: &service-n8n
   build:
@@ -474,6 +475,7 @@ services:
       - GITEA_HOSTNAME=${GITEA_HOSTNAME}
       - DOCUSEAL_HOSTNAME=${DOCUSEAL_HOSTNAME}
       - DEX_HOSTNAME=${DEX_HOSTNAME}
+      - CODESERVER_HOSTNAME=${CODESERVER_HOSTNAME}
       # Mail Services
       - MAILPIT_HOSTNAME=${MAILPIT_HOSTNAME}
       - MAILPIT_USERNAME=${MAILPIT_USERNAME}
@@ -3390,3 +3392,28 @@ services:
     environment:
       - DEX_FRONTEND_DIR=/srv/dex/web
     command: ["dex", "serve", "/etc/dex/config.yaml"]
+
+  # ===========================================
+  # CODE-SERVER - VS Code in the Browser
+  # ===========================================
+  code-server:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: code-server
+    profiles: ["code-server"]
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ:-Europe/Berlin}
+      - PASSWORD=${CODESERVER_PASSWORD}
+      - SUDO_PASSWORD=${CODESERVER_SUDO_PASSWORD}
+      - PROXY_DOMAIN=${CODESERVER_HOSTNAME}
+      - DEFAULT_WORKSPACE=/config/workspace
+    volumes:
+      - codeserver_data:/config
+      - ./shared:/config/workspace/shared
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8443/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
