@@ -1,0 +1,18 @@
+name: Mirror to Codeberg
+
+on:
+  push:
+    branches: ['**']
+  delete:
+    branches: ['**']
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Push mirror to Codeberg
+        run: |
+          git push --mirror https://freddy-schuetz:${{ secrets.CODEBERG_TOKEN }}@codeberg.org/freddy-schuetz/ai-launchkit.git
