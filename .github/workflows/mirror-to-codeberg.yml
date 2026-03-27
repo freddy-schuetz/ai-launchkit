@@ -13,6 +13,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          submodules: false
       - name: Push mirror to Codeberg
         run: |
           git push --mirror https://freddy-schuetz:${{ secrets.CODEBERG_TOKEN }}@codeberg.org/freddy-schuetz/ai-launchkit.git
